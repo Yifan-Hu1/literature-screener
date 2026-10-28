@@ -1,0 +1,13 @@
+node_modules/
+out/
+release/
+*.log
+.DS_Store
+
+# Never commit secrets or research data
+.env
+.env.*
+*.db
+*.db-journal
+test-projects/
+test-results/

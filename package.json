@@ -1,0 +1,66 @@
+{
+  "name": "literature-screener",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desktop app for screening biomedical literature from PubMed",
+  "author": "Literature Screener contributors",
+  "license": "UNLICENSED",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "package:mac": "electron-vite build && electron-builder --mac --dir",
+    "package:win": "electron-vite build && electron-builder --win --dir",
+    "test:e2e": "electron-vite build && node tests/e2e/smoke.mjs",
+    "test:live": "LIVE_PUBMED=1 vitest run tests/pubmed-live.test.ts"
+  },
+  "build": {
+    "appId": "org.literaturescreener.app",
+    "productName": "Literature Screener",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/main/**/*",
+      "out/preload/**/*",
+      "out/renderer/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.education"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.11.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "playwright-core": "^1.64.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}
