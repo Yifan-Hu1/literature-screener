@@ -16,7 +16,7 @@ You don't need anything on this page. Ask the project coordinator for the instal
 and the **tester guide** (PDF), then:
 
 - **Mac:** open the `.dmg` file and drag **Literature Screener** into **Applications**
-  (`mac-arm64` for Macs with an Apple chip, `mac-x64` for Intel Macs).
+  (one file for both Apple-chip and Intel Macs).
 - **Windows:** double-click `windows-setup.exe`. No administrator rights needed.
 
 The tester guide explains the one-time security warning and what to try.

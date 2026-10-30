@@ -85,8 +85,7 @@
           Click <b>Done</b>, open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.
           You only need to do this once.</li>
       </ol>
-      <p class="note">Not sure which Mac you have? Apple menu  → <b>About This Mac</b>. “Chip: Apple M…” = Apple chip;
-        “Processor: Intel” = Intel.</p>
+      <p class="note">Works on all recent Macs, with Apple chip or Intel processor (macOS 12 or newer).</p>
     </div>
     <div class="os" data-os="win">
       <ol>
@@ -120,8 +119,7 @@
   var BASE = 'https://github.com/Yifan-Hu1/literature-screener-app/releases/latest/download/';
   var FILES = {
     win: { label: 'Download for Windows', file: 'Literature-Screener-windows-setup.exe' },
-    macArm: { label: 'Download for Mac (Apple chip)', file: 'Literature-Screener-mac-arm64.dmg' },
-    macIntel: { label: 'Mac with Intel processor', file: 'Literature-Screener-mac-x64.dmg' }
+    mac: { label: 'Download for Mac', file: 'Literature-Screener-mac.dmg' }
   };
   var DOWNLOAD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>';
 
@@ -133,11 +131,11 @@
     return '<a class="' + (primary ? 'primary' : 'secondary') + '" href="' + BASE + f.file + '">' +
       (primary ? DOWNLOAD_ICON : '') + f.label + '</a>';
   }
-  var order = os === 'win' ? ['win', 'macArm', 'macIntel'] : ['macArm', 'macIntel', 'win'];
+  var order = os === 'win' ? ['win', 'mac'] : ['mac', 'win'];
   if (os === 'other') {
     document.getElementById('choices').innerHTML =
       '<p class="note">Literature Screener runs on Mac and Windows computers. Open this page there to download.</p>' +
-      button('macArm', false) + button('macIntel', false) + button('win', false);
+      button('mac', false) + button('win', false);
   } else {
     document.getElementById('choices').innerHTML = order.map(function (k, i) { return button(k, i === 0); }).join('');
   }

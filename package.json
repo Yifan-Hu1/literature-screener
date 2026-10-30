@@ -1,6 +1,6 @@
 {
   "name": "literature-screener",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "private": true,
   "description": "Desktop app for screening biomedical literature from PubMed",
   "author": "Literature Screener contributors",
@@ -12,7 +12,7 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "package:mac": "electron-vite build && electron-builder --mac --arm64 --x64 --publish never",
+    "package:mac": "electron-vite build && electron-builder --mac --universal --publish never",
     "package:win": "electron-vite build && electron-builder --win --x64 --publish never",
     "test:e2e": "electron-vite build && node tests/e2e/smoke.mjs",
     "test:live": "LIVE_PUBMED=1 vitest run tests/pubmed-live.test.ts",
@@ -38,10 +38,10 @@
       "category": "public.app-category.education",
       "identity": "-",
       "hardenedRuntime": false,
-      "artifactName": "Literature-Screener-mac-${arch}.${ext}"
+      "artifactName": "Literature-Screener-mac.${ext}"
     },
     "dmg": {
-      "artifactName": "Literature-Screener-mac-${arch}.${ext}"
+      "artifactName": "Literature-Screener-mac.${ext}"
     },
     "win": {
       "target": [
