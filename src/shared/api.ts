@@ -6,6 +6,7 @@ import type {
   DecisionFilter,
   ImportProgress,
   ImportResult,
+  MeshSuggestion,
   NewProjectInput,
   OriginFilter,
   ProjectOverview,
@@ -33,6 +34,7 @@ export interface InvokeApi {
   /** Returns the backup folder path, or null if cancelled. */
   backupProject(): Promise<string | null>
 
+  suggestMesh(term: string): Promise<MeshSuggestion[]>
   previewSearch(filters: SearchFilters): Promise<SearchPreview>
   browseSearch(filters: SearchFilters, start: number): Promise<BrowsePage>
   saveFromBrowse(pmid: string): Promise<void>
@@ -58,6 +60,7 @@ export const INVOKE_METHODS = [
   'getOverview',
   'revealProject',
   'backupProject',
+  'suggestMesh',
   'previewSearch',
   'browseSearch',
   'saveFromBrowse',

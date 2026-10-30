@@ -149,3 +149,28 @@ describe('exploratory browsing', () => {
     expect(() => svc.saveFromBrowse('38108521')).toThrow(/run the search again/)
   })
 })
+
+describe('MeSH suggestions', () => {
+  it('returns descriptors only, best match first', async () => {
+    const fetchImpl = (async (_url: string, init: RequestInit) => {
+      const params = new URLSearchParams(String(init.body))
+      expect(params.get('db')).toBe('mesh')
+      if (_url.endsWith('esearch.fcgi')) {
+        return new Response(JSON.stringify({ esearchresult: { idlist: ['68000437', '67000001'] } }))
+      }
+      return new Response(
+        JSON.stringify({
+          result: {
+            '68000437': { ds_meshui: 'D000437', ds_meshterms: ['Alcoholism', 'Alcohol Addiction'], ds_scopenote: 'A disease. ' },
+            '67000001': { ds_meshui: 'C000001', ds_meshterms: ['some chemical'] }
+          }
+        })
+      )
+    }) as typeof fetch
+    const client = new PubMedClient({ fetchImpl, minIntervalMs: 0 })
+    expect(await client.suggestMesh('alcohol use disorder')).toEqual([
+      { ui: 'D000437', name: 'Alcoholism', scopeNote: 'A disease.', entryTerms: ['Alcohol Addiction'] }
+    ])
+  })
+})
+

@@ -211,3 +211,26 @@ input.year { width: 80px; }
 .loading { opacity: 0.45; transition: opacity 0.1s; }
 .badge { white-space: nowrap; }
 .two-col + .hint { margin: 8px 0 16px; }
+
+/* ---------- concept builder ---------- */
+.concept-intro { margin: 0 0 4px; }
+.concepts { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; font-weight: normal; }
+.concept { width: 100%; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--surface); }
+.concept-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.concept-head select { padding: 4px 6px; }
+.concept-and { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; padding-left: 12px; }
+.term-box { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border: 1px solid var(--border); border-radius: 6px; padding: 6px; background: var(--surface); }
+.term { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; }
+.term button { border: none; background: none; padding: 0 6px; font-size: 15px; line-height: 1; color: var(--muted); }
+.term-mesh { border-color: var(--accent); }
+.term-kind { font-size: 10px; font-weight: 700; color: var(--accent); }
+.term-input { flex: 1; min-width: 220px; border: none; padding: 4px; background: transparent; outline: none; }
+.concept-actions { margin-top: 8px; }
+.concept-actions .hint { margin: 0; }
+button.small { padding: 4px 10px; font-size: 12px; }
+.mesh-suggestions { margin-top: 10px; padding: 10px; border-radius: 6px; background: var(--surface-2); }
+.mesh-suggestion { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.mesh-suggestions .hint { margin: 8px 0 0; }
+.advanced summary { cursor: pointer; font-weight: 500; }
+.advanced textarea { margin-top: 8px; }
+.chip-primary { font-weight: 600; }

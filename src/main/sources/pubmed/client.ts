@@ -1,6 +1,6 @@
 // Minimal client for NCBI E-utilities (esearch + efetch) for PubMed.
 // https://www.ncbi.nlm.nih.gov/books/NBK25499/
-import type { PubMedRecord } from '../../../shared/types'
+import type { MeshSuggestion, PubMedRecord } from '../../../shared/types'
 import { parsePubMedXml } from './parse'
 
 const BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/'
@@ -115,6 +115,26 @@ export class PubMedClient {
       queryTranslation: r.querytranslation ?? null,
       warnings
     }
+  }
+
+  /** Looks up MeSH descriptors (subject headings) matching a term, best match first. */
+  async suggestMesh(term: string, max = 5): Promise<MeshSuggestion[]> {
+    const search = JSON.parse(
+      await this.request('esearch.fcgi', { db: 'mesh', term, retmode: 'json', retmax: String(max) })
+    )
+    const ids: string[] = search.esearchresult?.idlist ?? []
+    if (ids.length === 0) return []
+    const summary = JSON.parse(await this.request('esummary.fcgi', { db: 'mesh', id: ids.join(','), retmode: 'json' }))
+    return ids
+      .map((id) => summary.result?.[id])
+      // Only descriptors ("D..."); supplementary chemical concepts cannot be searched with [Mesh].
+      .filter((d) => d && String(d.ds_meshui).startsWith('D') && d.ds_meshterms?.length)
+      .map((d) => ({
+        ui: String(d.ds_meshui),
+        name: String(d.ds_meshterms[0]),
+        scopeNote: d.ds_scopenote ? String(d.ds_scopenote).trim() : null,
+        entryTerms: d.ds_meshterms.slice(1, 6).map(String)
+      }))
   }
 
   /** Fetches full records in batches. Order follows the PubMed response. */

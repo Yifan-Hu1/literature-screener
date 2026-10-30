@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BrowsePage, ImportProgress, ImportResult, SearchFilters } from '../../../shared/types'
-import { ARTICLE_TYPES, EMPTY_FILTERS, buildPubMedQuery } from '../../../shared/query'
+import { ARTICLE_TYPES, EMPTY_FILTERS, REVIEW_TYPES, buildPubMedQuery, emptyConcept } from '../../../shared/query'
 import { SYSTEM_PRESETS } from '../../../shared/systems'
 import { api, errorMessage } from '../api'
 import { ErrorBox } from '../components/common'
+import { ConceptBuilder } from '../components/ConceptBuilder'
 
 function toggle(list: string[], item: string): string[] {
   return list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
@@ -37,6 +38,9 @@ export function SearchScreen({ onImported }: { onImported: () => void }) {
   const [result, setResult] = useState<ImportResult | null>(null)
   const [yearFromText, setYearFromText] = useState(filters.yearFrom?.toString() ?? '')
   const [yearToText, setYearToText] = useState(filters.yearTo?.toString() ?? '')
+  const [showAdvanced, setShowAdvanced] = useState(!!filters.query)
+  // Changing the key resets the concept rows' own state (typed text, suggestions).
+  const [formKey, setFormKey] = useState(0)
 
   const setFilters = (f: SearchFilters) => {
     lastFilters = f
@@ -112,19 +116,36 @@ export function SearchScreen({ onImported }: { onImported: () => void }) {
           void runBrowse(filters, 0)
         }}
       >
-        <label>
-          Search terms
+        <div className="field">
+          <div>Search terms</div>
+          <p className="hint concept-intro">
+            Put each idea of your question in its own concept, with its synonyms. For example, concept 1: alcohol use
+            disorder, alcoholism, AUD; concept 2: microglia, neuroinflammation.
+          </p>
+          <ConceptBuilder
+            key={formKey}
+            concepts={filters.concepts ?? [emptyConcept()]}
+            onChange={(concepts) => setFilters({ ...filters, concepts })}
+          />
+        </div>
+
+        <details
+          className="field advanced"
+          open={showAdvanced}
+          onToggle={(e) => setShowAdvanced(e.currentTarget.open)}
+        >
+          <summary>Advanced: type a PubMed query yourself</summary>
           <textarea
             rows={3}
             value={filters.query}
             onChange={(e) => setFilters({ ...filters, query: e.target.value })}
             placeholder='e.g. (microglia OR macrophage*) AND "Amyotrophic Lateral Sclerosis"[Mesh]'
           />
-        </label>
-        <p className="hint">
-          Use AND, OR, NOT and parentheses. PubMed tags work too: [Mesh] for MeSH terms, [tiab] for title/abstract,
-          [au] for author.
-        </p>
+          <p className="hint">
+            Combined with the concepts above using AND. Use AND, OR, NOT and parentheses; PubMed tags work too: [Mesh]
+            for MeSH terms, [tiab] for title/abstract, [au] for author.
+          </p>
+        </details>
 
         <div className="field">
           <div>Organisms &amp; experimental systems</div>
@@ -149,18 +170,41 @@ export function SearchScreen({ onImported }: { onImported: () => void }) {
         <div className="field">
           <div>Article types</div>
           <div className="chips">
+            <button
+              type="button"
+              className={`chip chip-primary ${filters.primaryResearchOnly ? 'on' : ''}`}
+              onClick={() =>
+                setFilters({
+                  ...filters,
+                  primaryResearchOnly: !filters.primaryResearchOnly,
+                  articleTypes: filters.articleTypes.filter((t) => !REVIEW_TYPES.includes(t))
+                })
+              }
+            >
+              Primary research only
+            </button>
             {ARTICLE_TYPES.map((t) => (
               <button
                 type="button"
                 key={t}
                 className={`chip ${filters.articleTypes.includes(t) ? 'on' : ''}`}
+                disabled={filters.primaryResearchOnly && REVIEW_TYPES.includes(t)}
                 onClick={() => setFilters({ ...filters, articleTypes: toggle(filters.articleTypes, t) })}
               >
                 {t}
               </button>
             ))}
           </div>
-          <p className="hint">Leave all unselected to include every article type.</p>
+          {filters.primaryResearchOnly ? (
+            <p className="hint">
+              Leaves out papers PubMed labels as reviews (including systematic and scoping reviews), meta-analyses,
+              editorials, comments, news, guidelines, errata, retraction notices, expressions of concern and
+              biographies. Letters are kept because research letters often contain original data. Very recent papers
+              that PubMed has not yet labelled may still include some reviews; you can exclude those while screening.
+            </p>
+          ) : (
+            <p className="hint">Selecting types keeps only those types. Leave all unselected to include every type.</p>
+          )}
         </div>
 
         <div className="row">
@@ -194,6 +238,7 @@ export function SearchScreen({ onImported }: { onImported: () => void }) {
             type="button"
             onClick={() => {
               setFilters(EMPTY_FILTERS)
+              setFormKey((k) => k + 1)
               setYearFromText('')
               setYearToText('')
             }}

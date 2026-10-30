@@ -5,7 +5,8 @@ import type { RecordDetail } from '../../../shared/types'
 import { api, formatDate } from '../api'
 import { SystemTags } from './common'
 
-const RETRACTION_TYPES = ['Retracted Publication', 'Retraction of Publication', 'Expression of Concern']
+// "Retraction of Publication" is the older name of "Retraction Notice".
+const RETRACTION_TYPES = ['Retracted Publication', 'Retraction Notice', 'Retraction of Publication', 'Expression of Concern']
 
 function Link({ href, children }: { href: string; children: ReactNode }) {
   return (

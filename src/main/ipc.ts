@@ -108,6 +108,9 @@ export function registerIpc(getWindow: () => BrowserWindow | null): { closeProje
       return dest ? p.backupTo(dest) : null
     },
 
+    async suggestMesh(term) {
+      return getClient().suggestMesh(term)
+    },
     async previewSearch(filters) {
       return search.preview(filters)
     },

@@ -25,4 +25,19 @@ describe.skipIf(!process.env.LIVE_PUBMED)('live PubMed', () => {
     const result = await client.search('qqqzzxnotaword[tiab] OR microglia')
     expect(result.warnings.join(' ')).toMatch(/qqqzzxnotaword/)
   }, 30000)
+
+  it('finds the MeSH heading for a common term', async () => {
+    const s = await client.suggestMesh('alcohol use disorder')
+    expect(s.map((x) => x.name)).toContain('Alcoholism')
+  }, 30000)
+
+  it('primary-research filter uses only publication types PubMed recognises', async () => {
+    const query = buildPubMedQuery({ ...EMPTY_FILTERS, query: 'microglia', primaryResearchOnly: true })
+    const result = await client.search(query)
+    expect(result.warnings).toEqual([])
+    const all = await client.search('microglia')
+    expect(result.count).toBeGreaterThan(0)
+    expect(result.count).toBeLessThan(all.count)
+  }, 30000)
 })
+

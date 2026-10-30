@@ -62,8 +62,20 @@ try {
   await shot(page, 'overview-empty')
 
   await page.getByRole('button', { name: 'Search PubMed' }).click()
-  await page.locator('textarea').fill('microglia')
+  const termInput = page.locator('.term-input').first()
+  await termInput.fill('microglia')
+  await termInput.press('Enter')
+  await page.getByRole('button', { name: 'Suggest MeSH terms' }).click()
+  await page.locator('.mesh-suggestion', { hasText: 'Microglia' }).first().getByRole('button', { name: 'Add' }).click()
+  await page.getByRole('button', { name: '+ Add another concept (AND)' }).click()
+  await page.locator('.term-input').nth(1).fill('development, developmental')
   await page.getByRole('button', { name: 'Zebrafish', exact: true }).click()
+  await page.getByRole('button', { name: 'Primary research only' }).click()
+  const query = await page.locator('.query-box').innerText()
+  if (!query.includes('"Microglia"[Mesh]') || !query.includes('developmental[tiab]') || !query.includes('NOT ("Review"[pt]')) {
+    throw new Error(`Unexpected query: ${query}`)
+  }
+  await shot(page, 'search-builder')
   await page.getByPlaceholder('year').nth(0).fill('2020')
   await page.getByPlaceholder('year').nth(1).fill('2021')
   await page.getByRole('button', { name: 'Search', exact: true }).click()

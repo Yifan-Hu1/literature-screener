@@ -42,7 +42,26 @@ export interface PubMedRecord {
   rawXml: string
 }
 
+export type ConceptField = 'tiab' | 'ti' | 'all'
+
+/** One idea in the search: its synonyms are combined with OR. */
+export interface SearchConcept {
+  terms: string[]
+  /** MeSH descriptor names. */
+  mesh: string[]
+  field: ConceptField
+}
+
+export interface MeshSuggestion {
+  ui: string
+  name: string
+  scopeNote: string | null
+  entryTerms: string[]
+}
+
 export interface SearchFilters {
+  /** Concepts are combined with AND. Optional so older search logs still read. */
+  concepts?: SearchConcept[]
   /** Free text; PubMed syntax (AND/OR/NOT, [Mesh], [tiab], ...) is allowed. */
   query: string
   yearFrom: number | null
@@ -50,6 +69,8 @@ export interface SearchFilters {
   articleTypes: string[]
   /** Ids from SYSTEM_PRESETS. */
   systems: string[]
+  /** Leave out reviews, editorials, notices and other non-primary publication types. */
+  primaryResearchOnly?: boolean
 }
 
 export interface SearchPreview {
