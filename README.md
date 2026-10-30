@@ -3,9 +3,11 @@
 A desktop app (macOS and Windows) for searching PubMed and screening biomedical
 literature in local, portable project folders.
 
-**Status:** Milestone 1. You can create and open projects, search PubMed with filters,
-import results or hand-pick papers, and screen titles and abstracts as
-Include / Exclude / Unsure. AI screening and full-text retrieval are not built yet.
+**Status:** Milestone 2. Projects, PubMed search (concept builder with MeSH suggestions,
+organism/system and study-approach filters, primary-research filter), import or hand-pick,
+title/abstract screening with exclusion reasons, comments and notes, organism-label
+corrections, collections, and CSV / RIS / PRISMA-summary export.
+AI screening and full-text retrieval are not built yet.
 
 ## Running the app (development)
 
@@ -61,9 +63,11 @@ src/main/            Electron main process (Node): database, PubMed, settings
   sources/pubmed/    PubMed E-utilities client and XML parser
   search.ts          search / browse / import workflows
   tagging.ts         organism & experimental-system tagging
+  export.ts          CSV, RIS and PRISMA-summary exports
   ipc.ts             connects UI calls to the services above
 src/preload/         the narrow bridge between UI and main process
 src/renderer/        the user interface (React)
 src/shared/          types, search-query builder, organism presets
+build/icon.svg       the app icon (build/icon.png is rendered from it)
 tests/               automated tests (tests/e2e: end-to-end)
 ```

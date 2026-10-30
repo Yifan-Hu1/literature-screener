@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BrowsePage, ImportProgress, ImportResult, SearchFilters } from '../../../shared/types'
 import { ARTICLE_TYPES, EMPTY_FILTERS, REVIEW_TYPES, buildPubMedQuery, emptyConcept } from '../../../shared/query'
-import { SYSTEM_PRESETS } from '../../../shared/systems'
 import { api, errorMessage } from '../api'
 import { ErrorBox } from '../components/common'
 import { ConceptBuilder } from '../components/ConceptBuilder'
+import { SystemPicker } from '../components/SystemPicker'
 
 function toggle(list: string[], item: string): string[] {
   return list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
@@ -148,22 +148,16 @@ export function SearchScreen({ onImported }: { onImported: () => void }) {
         </details>
 
         <div className="field">
-          <div>Organisms &amp; experimental systems</div>
-          <div className="chips">
-            {SYSTEM_PRESETS.map((p) => (
-              <button
-                type="button"
-                key={p.id}
-                className={`chip ${filters.systems.includes(p.id) ? 'on' : ''}`}
-                onClick={() => setFilters({ ...filters, systems: toggle(filters.systems, p.id) })}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <div>Organisms, experimental systems &amp; study approach</div>
+          <SystemPicker
+            selected={filters.systems}
+            mode={filters.systemsMode ?? 'any'}
+            onChange={(systems, systemsMode) => setFilters({ ...filters, systems, systemsMode })}
+          />
           <p className="hint">
-            Selected systems are combined with OR. Each one searches MeSH terms <em>and</em> title/abstract words, so
-            recent papers that PubMed has not indexed yet are still found.
+            Each one searches MeSH terms <em>and</em> title/abstract words, so recent papers that PubMed has not indexed
+            yet are still found. “All of these” finds papers that mention every selected system, e.g. human samples,
+            mouse experiments and cell culture in one study.
           </p>
         </div>
 

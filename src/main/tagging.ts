@@ -4,6 +4,9 @@
 import type { PubMedRecord, TagSource } from '../shared/types'
 import { SYSTEM_PRESETS } from '../shared/systems'
 
+/** Bump when presets or matching change, so open projects recompute automatic tags. */
+export const TAGGING_VERSION = 2
+
 export interface DerivedTag {
   system: string
   source: TagSource
@@ -23,7 +26,7 @@ const COMPILED = SYSTEM_PRESETS.map((p) => ({
   regexes: p.textTerms.map((t) => ({ term: t, re: termRegex(t) }))
 }))
 
-export function deriveSystemTags(record: PubMedRecord): DerivedTag[] {
+export function deriveSystemTags(record: Pick<PubMedRecord, 'title' | 'abstract' | 'mesh'>): DerivedTag[] {
   const tags: DerivedTag[] = []
   const descriptors = record.mesh.map((m) => m.descriptor)
   const text = `${record.title}\n${record.abstract ?? ''}`

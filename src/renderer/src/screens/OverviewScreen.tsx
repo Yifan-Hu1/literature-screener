@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ProjectOverview, SearchLogEntry } from '../../../shared/types'
 import { api, errorMessage, formatDate } from '../api'
 import { ErrorBox } from '../components/common'
+import { CriteriaCard, ExclusionReasonsCard } from '../components/ProjectSettings'
 
 const STATUS_LABEL: Record<SearchLogEntry['status'], string> = {
   in_progress: 'In progress',
@@ -10,7 +11,12 @@ const STATUS_LABEL: Record<SearchLogEntry['status'], string> = {
   failed: 'Failed'
 }
 
-export function OverviewScreen({ project }: { project: ProjectOverview }) {
+interface Props {
+  project: ProjectOverview
+  onChanged: (p: ProjectOverview) => void
+}
+
+export function OverviewScreen({ project, onChanged }: Props) {
   const [searches, setSearches] = useState<SearchLogEntry[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -36,17 +42,8 @@ export function OverviewScreen({ project }: { project: ProjectOverview }) {
         <Stat label="Exclude" value={exclude} kind="exclude" />
       </div>
 
-      <div className="two-col">
-        <section className="card">
-          <h3>Inclusion criteria</h3>
-          <pre className="criteria">{project.inclusionCriteria || '—'}</pre>
-        </section>
-        <section className="card">
-          <h3>Exclusion criteria</h3>
-          <pre className="criteria">{project.exclusionCriteria || '—'}</pre>
-        </section>
-      </div>
-      <p className="hint">Criteria version {project.criteriaVersion}. Each screening decision records the version in force.</p>
+      <CriteriaCard key={project.criteriaVersion} project={project} onSaved={onChanged} />
+      <ExclusionReasonsCard />
 
       <section className="card">
         <h3>Search history</h3>
@@ -109,6 +106,20 @@ export function OverviewScreen({ project }: { project: ProjectOverview }) {
             }}
           >
             Back up project…
+          </button>
+          <button
+            onClick={async () => {
+              setError(null)
+              setMessage(null)
+              try {
+                const path = await api.exportPrismaSummary()
+                if (path) setMessage(`PRISMA summary saved to ${path}`)
+              } catch (e) {
+                setError(errorMessage(e))
+              }
+            }}
+          >
+            Export PRISMA summary…
           </button>
         </div>
         {message && <div className="alert alert-ok">{message}</div>}

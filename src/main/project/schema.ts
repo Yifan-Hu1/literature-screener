@@ -126,7 +126,57 @@ export const MIGRATIONS: string[] = [
   BEGIN SELECT RAISE(ABORT, 'Screening decisions are append-only'); END;
   CREATE TRIGGER decisions_no_delete BEFORE DELETE ON decisions
   BEGIN SELECT RAISE(ABORT, 'Screening decisions are append-only'); END;
+  `,
+
+  /* v2: notes, exclusion-reason ordering, collections, researcher tag corrections */ `
+  ALTER TABLE exclusion_reasons ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
+
+  -- Free-text notes about a record. Kept as a list; notes are never edited in place.
+  CREATE TABLE record_notes (
+    id          INTEGER PRIMARY KEY,
+    record_id   INTEGER NOT NULL REFERENCES records(id),
+    reviewer_id TEXT NOT NULL REFERENCES reviewers(id),
+    text        TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+  );
+  CREATE INDEX record_notes_record ON record_notes(record_id);
+
+  CREATE TABLE collections (
+    id         INTEGER PRIMARY KEY,
+    name       TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE collection_records (
+    collection_id INTEGER NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+    record_id     INTEGER NOT NULL REFERENCES records(id),
+    added_at      TEXT NOT NULL,
+    PRIMARY KEY (collection_id, record_id)
+  );
+
+  -- For source 'manual': present = 1 means the researcher confirmed/added the system,
+  -- present = 0 means the researcher says it does not apply. Automatic tags are kept.
+  ALTER TABLE system_tags ADD COLUMN present INTEGER NOT NULL DEFAULT 1;
+
+  -- The systems that currently apply to each record: a researcher's correction
+  -- overrides the automatic tags for that system.
+  CREATE VIEW record_systems AS
+    SELECT record_id, system FROM system_tags WHERE source = 'manual' AND present = 1
+    UNION
+    SELECT t.record_id, t.system FROM system_tags t
+    WHERE t.source <> 'manual' AND NOT EXISTS (
+      SELECT 1 FROM system_tags m WHERE m.record_id = t.record_id AND m.system = t.system AND m.source = 'manual');
   `
+]
+
+/** Suggested title/abstract exclusion reasons for new projects; editable per project. */
+export const DEFAULT_EXCLUSION_REASONS = [
+  'Not relevant to the research question',
+  'Wrong population, organism or experimental system',
+  'Wrong intervention or exposure',
+  'Wrong outcome',
+  'Wrong study design',
+  'Not primary research',
+  'Duplicate publication'
 ]
 
 export const SCHEMA_VERSION = MIGRATIONS.length

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import type { AppSettings, ProjectOverview } from '../../../shared/types'
 import { api, errorMessage } from '../api'
 import { ErrorBox } from '../components/common'
+import logo from '../../../../build/icon.svg'
 
 interface Props {
   settings: AppSettings
@@ -27,8 +28,11 @@ export function StartScreen({ settings, onSettingsChanged, onOpened }: Props) {
   return (
     <div className="start">
       <header className="start-header">
-        <h1>Literature Screener</h1>
-        <p className="muted">Search PubMed, collect publications and screen them in a local project.</p>
+        <img src={logo} alt="" className="start-logo" />
+        <div>
+          <h1>Literature Screener</h1>
+          <p className="muted">Search PubMed, collect publications and screen them in a local project.</p>
+        </div>
       </header>
 
       {!settings.reviewerName ? (

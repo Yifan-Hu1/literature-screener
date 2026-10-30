@@ -26,6 +26,9 @@ commands when they need to act.
 ## Architecture
 - `src/shared/api.ts` is the UI ↔ main contract. Adding a method: add it to `InvokeApi`,
   `INVOKE_METHODS`, and the handlers in `src/main/ipc.ts`.
+- Changing presets in `src/shared/systems.ts` or tag matching: bump `TAGGING_VERSION` in
+  `src/main/tagging.ts` so open projects recompute automatic tags (manual/AI tags are kept).
+- App icon: edit `build/icon.svg`, then re-render `build/icon.png` (1024 px) before packaging.
 - Schema changes: append a new entry to `MIGRATIONS` in `src/main/project/schema.ts`;
   never edit released migrations.
 - Secrets live in per-computer settings encrypted with `safeStorage`, never in projects or git.
@@ -35,7 +38,9 @@ commands when they need to act.
 
 ## Roadmap
 M1 (done): projects, PubMed search/browse/import, manual screening, persistence.
-M2: notes, exclusion reasons (table exists), criteria editing, collections, export (CSV/RIS).
+M2 (done): concept builder + MeSH suggestions, primary-research filter, any/all system
+filters, epidemiology category, exclusion reasons, decision comments, notes, researcher
+tag corrections (`record_systems` view), criteria versions, collections, CSV/RIS/PRISMA export.
 M3: optional AI pre-screening with a provider layer (Claude first) separate from tasks.
 M4: full text & supplements (PMC, Europe PMC, Unpaywall, manual import).
 Do not start a milestone until the owner has reviewed the previous one.

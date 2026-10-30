@@ -5,13 +5,16 @@ import { randomUUID } from 'node:crypto'
 import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import type {
+  Collection,
   Decision,
   DecisionEntry,
-  DecisionFilter,
-  OriginFilter,
+  DecisionInput,
+  ExclusionReason,
   ProjectOverview,
   PubMedRecord,
   RecordDetail,
+  RecordFilter,
+  RecordNote,
   RecordOrigin,
   RecordPage,
   RecordQuery,
@@ -22,8 +25,8 @@ import type {
   SearchStatus,
   SystemTag
 } from '../../shared/types'
-import { APP_ID, MIGRATIONS, SCHEMA_VERSION } from './schema'
-import { deriveSystemTags } from '../tagging'
+import { APP_ID, DEFAULT_EXCLUSION_REASONS, MIGRATIONS, SCHEMA_VERSION } from './schema'
+import { TAGGING_VERSION, deriveSystemTags } from '../tagging'
 
 export const DB_FILE = 'project.db'
 const STAGE = 'title_abstract'
@@ -99,6 +102,8 @@ export class ProjectStore {
       store.db.prepare(
         'INSERT INTO criteria_versions (version, inclusion, exclusion, created_at, reviewer_id) VALUES (1, ?, ?, ?, ?)'
       ).run(info.inclusionCriteria.trim(), info.exclusionCriteria.trim(), t, reviewer.id)
+      store.seedExclusionReasons()
+      store.setMeta('tagging_version', String(TAGGING_VERSION))
     })
     return store
   }
@@ -111,6 +116,8 @@ export class ProjectStore {
     try {
       store.migrate()
       if (store.getMeta('app') !== APP_ID) throw new Error('This project.db was not created by Literature Screener.')
+      store.seedExclusionReasons()
+      store.refreshAutomaticTags()
     } catch (e) {
       store.close()
       throw e
@@ -157,6 +164,27 @@ export class ProjectStore {
   private getMeta(key: string): string | null {
     const row = this.db.prepare('SELECT value FROM meta WHERE key = ?').get(key) as Row | undefined
     return row ? String(row.value) : null
+  }
+
+  /**
+   * Automatic tags are derived from the stored record, so they can be recomputed
+   * when the presets improve. Researcher corrections and AI tags are untouched.
+   */
+  private refreshAutomaticTags() {
+    if (Number(this.getMeta('tagging_version') ?? 1) >= TAGGING_VERSION) return
+    const rows = this.db.prepare('SELECT id, title, abstract, mesh_json FROM records').all() as Row[]
+    const insert = this.db.prepare(
+      'INSERT INTO system_tags (record_id, system, source, evidence, created_at) VALUES (?, ?, ?, ?, ?)'
+    )
+    this.tx(() => {
+      this.db.exec("DELETE FROM system_tags WHERE source IN ('pubmed_mesh', 'keyword_match')")
+      const t = now()
+      for (const r of rows) {
+        const tags = deriveSystemTags({ title: r.title, abstract: r.abstract, mesh: JSON.parse(r.mesh_json) })
+        for (const tag of tags) insert.run(r.id, tag.system, tag.source, tag.evidence, t)
+      }
+      this.setMeta('tagging_version', String(TAGGING_VERSION))
+    })
   }
 
   private currentCriteria(): Row {
@@ -302,36 +330,48 @@ export class ProjectStore {
 
   // ---------- listing & screening ----------
 
-  private filteredRecordsSql(decision: DecisionFilter, origin: OriginFilter, text: string) {
+  private filteredRecordsSql(f: RecordFilter) {
+    const inner: string[] = []
+    const innerParams: (string | number)[] = []
+    if (f.text.trim()) {
+      inner.push('(r.title LIKE ? OR r.abstract LIKE ? OR r.pmid = ? OR r.doi = ?)')
+      const like = `%${f.text.trim()}%`
+      innerParams.push(like, like, f.text.trim(), f.text.trim())
+    }
+    if (f.systems.length) {
+      const one = 'EXISTS (SELECT 1 FROM record_systems rs WHERE rs.record_id = r.id AND rs.system = ?)'
+      inner.push(`(${f.systems.map(() => one).join(f.systemsMode === 'all' ? ' AND ' : ' OR ')})`)
+      innerParams.push(...f.systems)
+    }
+    if (f.collectionId != null) {
+      inner.push('EXISTS (SELECT 1 FROM collection_records cr WHERE cr.record_id = r.id AND cr.collection_id = ?)')
+      innerParams.push(f.collectionId)
+    }
+
     const where: string[] = []
     const params: (string | number)[] = []
-    if (decision === 'undecided') where.push('decision IS NULL')
-    else if (decision !== 'all') {
+    if (f.decision === 'undecided') where.push('decision IS NULL')
+    else if (f.decision !== 'all') {
       where.push('decision = ?')
-      params.push(decision)
+      params.push(f.decision)
     }
-    if (origin === 'structured') where.push('structured = 1')
-    if (origin === 'hand_picked') where.push('hand_picked = 1')
-    const inner: string[] = []
-    if (text.trim()) {
-      inner.push('(r.title LIKE ? OR r.abstract LIKE ? OR r.pmid = ?)')
-      const like = `%${text.trim()}%`
-      params.unshift(like, like, text.trim())
-    }
+    if (f.origin === 'structured') where.push('structured = 1')
+    if (f.origin === 'hand_picked') where.push('hand_picked = 1')
+
     const sql = `SELECT * FROM (
         SELECT r.id, r.pmid, r.title, r.journal, r.pub_year,
           (SELECT d.decision FROM decisions d WHERE d.record_id = r.id AND d.stage = '${STAGE}'
              ORDER BY d.id DESC LIMIT 1) AS decision,
           EXISTS (SELECT 1 FROM search_records sr WHERE sr.record_id = r.id AND sr.how = 'search_import') AS structured,
           EXISTS (SELECT 1 FROM search_records sr WHERE sr.record_id = r.id AND sr.how = 'hand_picked') AS hand_picked,
-          (SELECT group_concat(DISTINCT t.system) FROM system_tags t WHERE t.record_id = r.id) AS systems
+          (SELECT group_concat(rs.system) FROM record_systems rs WHERE rs.record_id = r.id) AS systems
         FROM records r ${inner.length ? `WHERE ${inner.join(' AND ')}` : ''}
       ) ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`
-    return { sql, params }
+    return { sql, params: [...innerParams, ...params] }
   }
 
   listRecords(q: RecordQuery): RecordPage {
-    const { sql, params } = this.filteredRecordsSql(q.decision, q.origin, q.text)
+    const { sql, params } = this.filteredRecordsSql(q)
     const total = Number((this.db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params) as Row).n)
     const rows = this.db.prepare(`${sql} ORDER BY id LIMIT ? OFFSET ?`).all(...params, q.limit, q.offset) as Row[]
     const items: RecordSummary[] = rows.map((r) => ({
@@ -348,8 +388,9 @@ export class ProjectStore {
     return { total, offset: q.offset, items }
   }
 
-  screeningQueue(decision: DecisionFilter, origin: OriginFilter): number[] {
-    const { sql, params } = this.filteredRecordsSql(decision, origin, '')
+  /** Ids of all records matching a filter, in import order. */
+  recordIds(f: RecordFilter): number[] {
+    const { sql, params } = this.filteredRecordsSql(f)
     return (this.db.prepare(`SELECT id FROM (${sql}) ORDER BY id`).all(...params) as Row[]).map((r) => Number(r.id))
   }
 
@@ -358,8 +399,25 @@ export class ProjectStore {
     if (!r) throw new Error(`Record ${id} not found in this project.`)
 
     const tags: SystemTag[] = (
-      this.db.prepare('SELECT system, source, evidence FROM system_tags WHERE record_id = ? ORDER BY system, source').all(id) as Row[]
-    ).map((t) => ({ system: t.system, source: t.source, evidence: t.evidence }))
+      this.db.prepare(
+        'SELECT system, source, evidence, present FROM system_tags WHERE record_id = ? ORDER BY system, source'
+      ).all(id) as Row[]
+    ).map((t) => ({ system: t.system, source: t.source, evidence: t.evidence, present: Number(t.present) === 1 }))
+
+    const systems = (
+      this.db.prepare('SELECT system FROM record_systems WHERE record_id = ? ORDER BY system').all(id) as Row[]
+    ).map((s) => String(s.system))
+
+    const notes: RecordNote[] = (
+      this.db.prepare(
+        `SELECT n.id, n.text, n.created_at, rv.name AS reviewer_name FROM record_notes n
+         JOIN reviewers rv ON rv.id = n.reviewer_id WHERE n.record_id = ? ORDER BY n.id DESC`
+      ).all(id) as Row[]
+    ).map((n) => ({ id: Number(n.id), text: n.text, reviewerName: n.reviewer_name, createdAt: n.created_at }))
+
+    const collectionIds = (
+      this.db.prepare('SELECT collection_id FROM collection_records WHERE record_id = ?').all(id) as Row[]
+    ).map((c) => Number(c.collection_id))
 
     const origins: RecordOrigin[] = (
       this.db.prepare(
@@ -370,7 +428,8 @@ export class ProjectStore {
 
     const history: DecisionEntry[] = (
       this.db.prepare(
-        `SELECT d.id, d.decision, d.stage, d.decided_at, rv.name AS reviewer_name, cv.version AS criteria_version
+        `SELECT d.id, d.decision, d.stage, d.decided_at, d.reason_text, d.note, rv.name AS reviewer_name,
+           cv.version AS criteria_version
          FROM decisions d JOIN reviewers rv ON rv.id = d.reviewer_id
          LEFT JOIN criteria_versions cv ON cv.id = d.criteria_version_id
          WHERE d.record_id = ? ORDER BY d.id DESC`
@@ -381,7 +440,9 @@ export class ProjectStore {
       stage: d.stage,
       reviewerName: d.reviewer_name,
       decidedAt: d.decided_at,
-      criteriaVersion: d.criteria_version == null ? null : Number(d.criteria_version)
+      criteriaVersion: d.criteria_version == null ? null : Number(d.criteria_version),
+      reasonText: d.reason_text ?? null,
+      comment: d.note ?? null
     }))
 
     return {
@@ -402,6 +463,9 @@ export class ProjectStore {
       languages: JSON.parse(r.languages_json),
       retrievedAt: r.retrieved_at,
       tags,
+      systems,
+      notes,
+      collectionIds,
       origins,
       history,
       current: history.find((h) => h.stage === STAGE)?.decision ?? null
@@ -409,15 +473,155 @@ export class ProjectStore {
   }
 
   /** Records a human decision. Earlier decisions are kept as history. */
-  decide(recordId: number, decision: Decision, reviewer: Reviewer): RecordDetail {
+  decide(recordId: number, input: DecisionInput, reviewer: Reviewer): RecordDetail {
+    let reasonId: number | null = null
+    let reasonText: string | null = null
+    if (input.reasonId != null) {
+      if (input.decision !== 'exclude') throw new Error('Exclusion reasons can only be given for exclusions.')
+      const reason = this.db.prepare('SELECT label FROM exclusion_reasons WHERE id = ?').get(input.reasonId) as Row | undefined
+      if (!reason) throw new Error('That exclusion reason no longer exists.')
+      reasonId = input.reasonId
+      reasonText = reason.label
+    }
+    const comment = input.comment?.trim() || null
     this.tx(() => {
       this.ensureReviewer(reviewer)
       this.db.prepare(
-        `INSERT INTO decisions (record_id, stage, decision, reviewer_id, criteria_version_id, decided_at)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      ).run(recordId, STAGE, decision, reviewer.id, Number(this.currentCriteria().id), now())
+        `INSERT INTO decisions (record_id, stage, decision, reviewer_id, criteria_version_id, reason_id, reason_text, note, decided_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(recordId, STAGE, input.decision, reviewer.id, Number(this.currentCriteria().id), reasonId, reasonText, comment, now())
     })
     return this.getRecord(recordId)
+  }
+
+  // ---------- criteria & exclusion reasons ----------
+
+  /** Saves edited criteria as a new version; earlier decisions keep pointing at their version. */
+  updateCriteria(inclusion: string, exclusion: string, reviewer: Reviewer) {
+    const c = this.currentCriteria()
+    if (c.inclusion === inclusion.trim() && c.exclusion === exclusion.trim()) return
+    this.tx(() => {
+      this.ensureReviewer(reviewer)
+      this.db.prepare(
+        'INSERT INTO criteria_versions (version, inclusion, exclusion, created_at, reviewer_id) VALUES (?, ?, ?, ?, ?)'
+      ).run(Number(c.version) + 1, inclusion.trim(), exclusion.trim(), now(), reviewer.id)
+    })
+  }
+
+  private seedExclusionReasons() {
+    const n = Number((this.db.prepare('SELECT COUNT(*) AS n FROM exclusion_reasons').get() as Row).n)
+    if (n > 0) return
+    const insert = this.db.prepare('INSERT INTO exclusion_reasons (label, created_at, sort_order) VALUES (?, ?, ?)')
+    DEFAULT_EXCLUSION_REASONS.forEach((label, i) => insert.run(label, now(), i))
+  }
+
+  exclusionReasons(): ExclusionReason[] {
+    return (this.db.prepare('SELECT * FROM exclusion_reasons ORDER BY sort_order, id').all() as Row[]).map((r) => ({
+      id: Number(r.id),
+      label: r.label,
+      retired: r.retired_at != null
+    }))
+  }
+
+  addExclusionReason(label: string) {
+    if (!label.trim()) throw new Error('The reason cannot be empty.')
+    const max = Number((this.db.prepare('SELECT COALESCE(MAX(sort_order), -1) AS m FROM exclusion_reasons').get() as Row).m)
+    this.db.prepare('INSERT INTO exclusion_reasons (label, created_at, sort_order) VALUES (?, ?, ?)').run(label.trim(), now(), max + 1)
+  }
+
+  /** Past decisions keep the wording they were made with. */
+  renameExclusionReason(id: number, label: string) {
+    if (!label.trim()) throw new Error('The reason cannot be empty.')
+    this.db.prepare('UPDATE exclusion_reasons SET label = ? WHERE id = ?').run(label.trim(), id)
+  }
+
+  /** Retired reasons stay in past decisions but are no longer offered. */
+  setExclusionReasonRetired(id: number, retired: boolean) {
+    this.db.prepare('UPDATE exclusion_reasons SET retired_at = ? WHERE id = ?').run(retired ? now() : null, id)
+  }
+
+  // ---------- notes, tags, collections ----------
+
+  addNote(recordId: number, text: string, reviewer: Reviewer) {
+    if (!text.trim()) return
+    this.ensureReviewer(reviewer)
+    this.db.prepare('INSERT INTO record_notes (record_id, reviewer_id, text, created_at) VALUES (?, ?, ?, ?)')
+      .run(recordId, reviewer.id, text.trim(), now())
+  }
+
+  /**
+   * A researcher's correction of an organism/system classification:
+   * true = applies, false = does not apply, null = remove the correction.
+   */
+  setManualTag(recordId: number, system: string, present: boolean | null, reviewer: Reviewer) {
+    this.tx(() => {
+      this.db.prepare("DELETE FROM system_tags WHERE record_id = ? AND system = ? AND source = 'manual'").run(recordId, system)
+      if (present === null) return
+      this.ensureReviewer(reviewer)
+      this.db.prepare(
+        "INSERT INTO system_tags (record_id, system, source, evidence, created_at, reviewer_id, present) VALUES (?, ?, 'manual', NULL, ?, ?, ?)"
+      ).run(recordId, system, now(), reviewer.id, present ? 1 : 0)
+    })
+  }
+
+  collections(): Collection[] {
+    return (
+      this.db.prepare(
+        `SELECT c.id, c.name, (SELECT COUNT(*) FROM collection_records cr WHERE cr.collection_id = c.id) AS n
+         FROM collections c ORDER BY c.name COLLATE NOCASE`
+      ).all() as Row[]
+    ).map((c) => ({ id: Number(c.id), name: c.name, count: Number(c.n) }))
+  }
+
+  createCollection(name: string): number {
+    if (!name.trim()) throw new Error('Please give the collection a name.')
+    if (this.db.prepare('SELECT 1 FROM collections WHERE name = ?').get(name.trim())) {
+      throw new Error(`A collection named "${name.trim()}" already exists.`)
+    }
+    return Number(this.db.prepare('INSERT INTO collections (name, created_at) VALUES (?, ?)').run(name.trim(), now()).lastInsertRowid)
+  }
+
+  /** Deletes only the grouping; the records stay in the project. */
+  deleteCollection(id: number) {
+    this.db.prepare('DELETE FROM collections WHERE id = ?').run(id)
+  }
+
+  setInCollection(collectionId: number, recordIds: number[], inCollection: boolean) {
+    const add = this.db.prepare('INSERT OR IGNORE INTO collection_records (collection_id, record_id, added_at) VALUES (?, ?, ?)')
+    const remove = this.db.prepare('DELETE FROM collection_records WHERE collection_id = ? AND record_id = ?')
+    this.tx(() => {
+      for (const id of recordIds) {
+        if (inCollection) add.run(collectionId, id, now())
+        else remove.run(collectionId, id)
+      }
+    })
+  }
+
+  // ---------- export ----------
+
+  /** The latest decision row for each record (title/abstract stage), with reviewer name. */
+  latestDecisions(): Map<number, Row> {
+    const rows = this.db.prepare(
+      `SELECT d.*, rv.name AS reviewer_name FROM decisions d JOIN reviewers rv ON rv.id = d.reviewer_id
+       WHERE d.stage = '${STAGE}' AND d.id = (SELECT MAX(d2.id) FROM decisions d2 WHERE d2.record_id = d.record_id AND d2.stage = d.stage)`
+    ).all() as Row[]
+    return new Map(rows.map((r) => [Number(r.record_id), r]))
+  }
+
+  /** Counts for a PRISMA-style flow of the title/abstract stage. */
+  prismaCounts() {
+    const one = (sql: string) => Number((this.db.prepare(sql).get() as Row).n)
+    return {
+      identifiedFromSearches: one(
+        "SELECT COUNT(*) AS n FROM search_records sr JOIN searches s ON s.id = sr.search_id WHERE s.mode = 'structured'"
+      ),
+      uniqueFromSearches: one("SELECT COUNT(DISTINCT record_id) AS n FROM search_records WHERE how = 'search_import'"),
+      handPickedOnly: one(
+        `SELECT COUNT(*) AS n FROM records r WHERE NOT EXISTS
+           (SELECT 1 FROM search_records sr WHERE sr.record_id = r.id AND sr.how = 'search_import')`
+      ),
+      recordCount: one('SELECT COUNT(*) AS n FROM records')
+    }
   }
 
   // ---------- backup ----------

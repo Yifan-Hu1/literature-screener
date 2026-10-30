@@ -3,6 +3,8 @@
 export type Decision = 'include' | 'exclude' | 'unsure'
 export type DecisionFilter = Decision | 'undecided' | 'all'
 export type OriginFilter = 'all' | 'structured' | 'hand_picked'
+export type MatchMode = 'any' | 'all'
+export type ExportFormat = 'csv' | 'ris'
 export type ScreeningStage = 'title_abstract' | 'full_text'
 export type SearchMode = 'structured' | 'exploratory'
 export type SearchStatus = 'in_progress' | 'complete' | 'incomplete' | 'failed'
@@ -69,6 +71,8 @@ export interface SearchFilters {
   articleTypes: string[]
   /** Ids from SYSTEM_PRESETS. */
   systems: string[]
+  /** Whether papers need any or all of the selected systems. Defaults to 'any'. */
+  systemsMode?: MatchMode
   /** Leave out reviews, editorials, notices and other non-primary publication types. */
   primaryResearchOnly?: boolean
 }
@@ -161,10 +165,16 @@ export interface RecordSummary {
   systems: string[]
 }
 
-export interface RecordQuery {
+export interface RecordFilter {
   decision: DecisionFilter
   origin: OriginFilter
   text: string
+  systems: string[]
+  systemsMode: MatchMode
+  collectionId: number | null
+}
+
+export interface RecordQuery extends RecordFilter {
   offset: number
   limit: number
 }
@@ -179,6 +189,34 @@ export interface SystemTag {
   system: string
   source: TagSource
   evidence: string | null
+  /** False only for a researcher's "does not apply" correction. */
+  present: boolean
+}
+
+export interface ExclusionReason {
+  id: number
+  label: string
+  retired: boolean
+}
+
+export interface RecordNote {
+  id: number
+  text: string
+  reviewerName: string
+  createdAt: string
+}
+
+export interface Collection {
+  id: number
+  name: string
+  count: number
+}
+
+export interface DecisionInput {
+  decision: Decision
+  /** Only for exclusions. */
+  reasonId?: number | null
+  comment?: string
 }
 
 export interface DecisionEntry {
@@ -188,6 +226,8 @@ export interface DecisionEntry {
   reviewerName: string
   decidedAt: string
   criteriaVersion: number | null
+  reasonText: string | null
+  comment: string | null
 }
 
 export interface RecordOrigin {
@@ -215,6 +255,10 @@ export interface RecordDetail {
   languages: string[]
   retrievedAt: string
   tags: SystemTag[]
+  /** Systems that currently apply, after researcher corrections. */
+  systems: string[]
+  notes: RecordNote[]
+  collectionIds: number[]
   origins: RecordOrigin[]
   history: DecisionEntry[]
   current: Decision | null

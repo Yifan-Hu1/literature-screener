@@ -2,7 +2,10 @@
 import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { IMPORT_PROGRESS_CHANNEL, INVOKE_METHODS, type InvokeApi } from '../shared/api'
 import type { ProjectOverview } from '../shared/types'
+import { writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { cloudSyncWarning } from './cloud'
+import { prismaSummary, recordsToCsv, recordsToRis } from './export'
 import { ProjectStore } from './project/store'
 import { SearchService } from './search'
 import { Settings } from './settings'
@@ -107,6 +110,10 @@ export function registerIpc(getWindow: () => BrowserWindow | null): { closeProje
       const dest = await handlers.chooseFolder('Choose where to save the backup')
       return dest ? p.backupTo(dest) : null
     },
+    async updateCriteria(inclusion, exclusion) {
+      requireProject().updateCriteria(inclusion, exclusion, requireReviewer())
+      return overview()
+    },
 
     async suggestMesh(term) {
       return getClient().suggestMesh(term)
@@ -132,15 +139,81 @@ export function registerIpc(getWindow: () => BrowserWindow | null): { closeProje
     async listRecords(query) {
       return requireProject().listRecords(query)
     },
-    async screeningQueue(decision, origin) {
-      return requireProject().screeningQueue(decision, origin)
+    async screeningQueue(filter) {
+      return requireProject().recordIds(filter)
     },
     async getRecord(id) {
       return requireProject().getRecord(id)
     },
-    async decide(recordId, decision) {
-      return requireProject().decide(recordId, decision, requireReviewer())
+    async decide(recordId, input) {
+      return requireProject().decide(recordId, input, requireReviewer())
+    },
+    async addNote(recordId, text) {
+      const p = requireProject()
+      p.addNote(recordId, text, requireReviewer())
+      return p.getRecord(recordId)
+    },
+    async setManualTag(recordId, system, present) {
+      const p = requireProject()
+      p.setManualTag(recordId, system, present, requireReviewer())
+      return p.getRecord(recordId)
+    },
+
+    async listExclusionReasons() {
+      return requireProject().exclusionReasons()
+    },
+    async addExclusionReason(label) {
+      requireProject().addExclusionReason(label)
+      return requireProject().exclusionReasons()
+    },
+    async renameExclusionReason(id, label) {
+      requireProject().renameExclusionReason(id, label)
+      return requireProject().exclusionReasons()
+    },
+    async setExclusionReasonRetired(id, retired) {
+      requireProject().setExclusionReasonRetired(id, retired)
+      return requireProject().exclusionReasons()
+    },
+
+    async listCollections() {
+      return requireProject().collections()
+    },
+    async createCollection(name) {
+      requireProject().createCollection(name)
+      return requireProject().collections()
+    },
+    async deleteCollection(id) {
+      requireProject().deleteCollection(id)
+      return requireProject().collections()
+    },
+    async setInCollection(collectionId, recordIds, inCollection) {
+      requireProject().setInCollection(collectionId, recordIds, inCollection)
+      return requireProject().collections()
+    },
+
+    async exportRecords(filter, format) {
+      const p = requireProject()
+      const content = format === 'csv' ? recordsToCsv(p, filter) : recordsToRis(p, filter)
+      return saveExport(p, `records.${format}`, content, format === 'csv' ? 'CSV (Excel)' : 'RIS (reference managers)', format)
+    },
+    async exportPrismaSummary() {
+      const p = requireProject()
+      return saveExport(p, 'prisma-summary.txt', prismaSummary(p), 'Text', 'txt')
     }
+  }
+
+  const saveExport = async (p: ProjectStore, suffix: string, content: string, label: string, ext: string) => {
+    const name = `${p.overview().name} ${new Date().toISOString().slice(0, 10)} ${suffix}`.replace(/[/\\:*?"<>|]/g, '-')
+    const opts: Electron.SaveDialogOptions = {
+      title: 'Save export',
+      defaultPath: join(p.path, 'exports', name),
+      filters: [{ name: label, extensions: [ext] }]
+    }
+    const win = getWindow()
+    const res = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+    if (res.canceled || !res.filePath) return null
+    writeFileSync(res.filePath, content)
+    return res.filePath
   }
 
   for (const method of INVOKE_METHODS) {

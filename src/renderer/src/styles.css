@@ -234,3 +234,66 @@ button.small { padding: 4px 10px; font-size: 12px; }
 .advanced summary { cursor: pointer; font-weight: 500; }
 .advanced textarea { margin-top: 8px; }
 .chip-primary { font-weight: 600; }
+
+/* ---------- system picker, segmented control ---------- */
+.system-picker { display: flex; flex-direction: column; gap: 8px; font-weight: normal; }
+.system-group { display: flex; flex-direction: column; gap: 4px; }
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; align-self: flex-start; }
+.segmented button { border: none; border-radius: 0; padding: 5px 12px; font-size: 13px; }
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button.on { background: var(--accent); color: var(--accent-text); }
+
+/* ---------- library ---------- */
+.page.library { max-width: 1400px; }
+.library-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 16px; align-items: start; }
+.collections-panel { position: sticky; top: 16px; }
+.collection-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.collection-item { width: 100%; border: none; background: none; display: flex; justify-content: space-between; text-align: left; padding: 6px 8px; }
+.collection-item.active { background: var(--surface-2); font-weight: 600; }
+.danger-link { border: none; background: none; color: var(--exclude); padding: 4px 0; margin-top: 6px; }
+.library-systems { margin-top: 12px; }
+.library-actions { margin-bottom: 8px; }
+.selection-bar { background: var(--surface-2); padding: 8px 10px; border-radius: 6px; margin-bottom: 8px; }
+.table th.check, .table td.check { width: 28px; }
+.table tr.selected { background: var(--surface-2); }
+.title-link { border: none; background: none; padding: 0; text-align: left; font: inherit; color: var(--text); cursor: pointer; }
+.title-link:hover:not(:disabled) { background: none; color: var(--accent); text-decoration: underline; }
+
+/* ---------- system editor, reasons, notes ---------- */
+.system-editor { display: flex; flex-direction: column; gap: 4px; }
+.system-row { display: grid; grid-template-columns: 170px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.system-row.rejected .system-name { text-decoration: line-through; color: var(--muted); }
+.system-name { font-weight: 600; font-size: 13px; }
+.system-sources { display: flex; flex-wrap: wrap; gap: 4px 10px; overflow: hidden; }
+.source { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.source-manual.ok { color: var(--include); font-weight: 600; }
+.source-manual.no { color: var(--exclude); font-weight: 600; }
+.system-actions { display: flex; gap: 4px; }
+.system-add { margin-top: 8px; }
+.reason-picker { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.reason-title { font-weight: 600; color: var(--exclude); }
+.reason { text-align: left; display: flex; gap: 8px; align-items: center; font-size: 13px; padding: 7px 10px; }
+.reason kbd, .decision kbd { font-family: inherit; font-size: 11px; padding: 1px 6px; border-radius: 4px; border: 1px solid currentColor; opacity: 0.7; }
+.comment { margin-bottom: 8px; font-size: 13px; }
+.history-detail { flex-basis: 100%; padding-left: 4px; color: var(--muted); }
+.note { padding: 6px 8px; background: var(--surface-2); border-radius: 6px; margin-bottom: 6px; }
+.decision-panel textarea { font-size: 13px; margin-bottom: 6px; }
+.collection-checks { display: flex; flex-direction: column; gap: 4px; }
+.collection-checks label { gap: 6px; font-weight: normal; }
+.collection-checks input { width: auto; }
+.screening-layout { grid-template-columns: minmax(0, 1fr) 320px; }
+.criteria-footer { justify-content: space-between; margin: 8px 0 16px; }
+.criteria-footer .hint { margin: 0; }
+.reason-list { margin: 0 0 12px; padding-left: 22px; }
+.reason-list li { padding: 4px 0; border-bottom: 1px solid var(--border); }
+.retired { margin-top: 10px; }
+.retired summary { cursor: pointer; color: var(--muted); }
+.collections-panel form input { min-width: 0; width: auto; }
+.collections-panel .hint { margin-top: 10px; }
+.filters input.grow { min-width: 260px; }
+
+/* ---------- logo ---------- */
+.start-header { display: flex; align-items: center; gap: 18px; }
+.start-logo { width: 88px; height: 88px; }
+.sidebar-brand { display: flex; align-items: center; gap: 8px; padding: 0 6px 14px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.sidebar-brand img { width: 30px; height: 30px; }

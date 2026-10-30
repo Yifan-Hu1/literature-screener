@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { RecordDetail } from '../../../shared/types'
 import { api, formatDate } from '../api'
-import { SystemTags } from './common'
+import { SystemEditor } from './SystemEditor'
 
 // "Retraction of Publication" is the older name of "Retraction Notice".
 const RETRACTION_TYPES = ['Retracted Publication', 'Retraction Notice', 'Retraction of Publication', 'Expression of Concern']
@@ -31,7 +31,13 @@ function authorList(r: RecordDetail): string {
   return names.join(', ')
 }
 
-export function RecordView({ record }: { record: RecordDetail }) {
+interface Props {
+  record: RecordDetail
+  /** When given, the researcher can confirm, reject or add organism/system labels. */
+  onSetTag?: (system: string, present: boolean | null) => void
+}
+
+export function RecordView({ record, onSetTag }: Props) {
   const warnings = record.publicationTypes.filter((t) => RETRACTION_TYPES.includes(t))
   return (
     <article className="record">
@@ -70,12 +76,8 @@ export function RecordView({ record }: { record: RecordDetail }) {
       </section>
 
       <section className="record-section">
-        <h4>Organisms &amp; experimental systems</h4>
-        <SystemTags tags={record.tags} />
-        <p className="hint">
-          Detected automatically from PubMed&apos;s MeSH indexing and from words in the title/abstract. Hover
-          for the evidence. These help with filtering and are not verified classifications.
-        </p>
+        <h4>Organisms, systems &amp; study approach</h4>
+        <SystemEditor tags={record.tags} onSetTag={onSetTag} />
       </section>
 
       {record.mesh.length > 0 && (

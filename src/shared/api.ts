@@ -2,15 +2,17 @@
 import type {
   AppSettings,
   BrowsePage,
-  Decision,
-  DecisionFilter,
+  Collection,
+  DecisionInput,
+  ExclusionReason,
+  ExportFormat,
   ImportProgress,
   ImportResult,
   MeshSuggestion,
   NewProjectInput,
-  OriginFilter,
   ProjectOverview,
   RecordDetail,
+  RecordFilter,
   RecordPage,
   RecordQuery,
   SearchFilters,
@@ -33,6 +35,8 @@ export interface InvokeApi {
   revealProject(): Promise<void>
   /** Returns the backup folder path, or null if cancelled. */
   backupProject(): Promise<string | null>
+  /** Saves edited criteria as a new version. */
+  updateCriteria(inclusion: string, exclusion: string): Promise<ProjectOverview>
 
   suggestMesh(term: string): Promise<MeshSuggestion[]>
   previewSearch(filters: SearchFilters): Promise<SearchPreview>
@@ -42,9 +46,26 @@ export interface InvokeApi {
   listSearches(): Promise<SearchLogEntry[]>
 
   listRecords(query: RecordQuery): Promise<RecordPage>
-  screeningQueue(decision: DecisionFilter, origin: OriginFilter): Promise<number[]>
+  screeningQueue(filter: RecordFilter): Promise<number[]>
   getRecord(id: number): Promise<RecordDetail>
-  decide(recordId: number, decision: Decision): Promise<RecordDetail>
+  decide(recordId: number, input: DecisionInput): Promise<RecordDetail>
+  addNote(recordId: number, text: string): Promise<RecordDetail>
+  /** true = applies, false = does not apply, null = remove the researcher's correction. */
+  setManualTag(recordId: number, system: string, present: boolean | null): Promise<RecordDetail>
+
+  listExclusionReasons(): Promise<ExclusionReason[]>
+  addExclusionReason(label: string): Promise<ExclusionReason[]>
+  renameExclusionReason(id: number, label: string): Promise<ExclusionReason[]>
+  setExclusionReasonRetired(id: number, retired: boolean): Promise<ExclusionReason[]>
+
+  listCollections(): Promise<Collection[]>
+  createCollection(name: string): Promise<Collection[]>
+  deleteCollection(id: number): Promise<Collection[]>
+  setInCollection(collectionId: number, recordIds: number[], inCollection: boolean): Promise<Collection[]>
+
+  /** Asks where to save; returns the saved file path, or null if cancelled. */
+  exportRecords(filter: RecordFilter, format: ExportFormat): Promise<string | null>
+  exportPrismaSummary(): Promise<string | null>
 }
 
 export type InvokeMethod = keyof InvokeApi
@@ -60,6 +81,7 @@ export const INVOKE_METHODS = [
   'getOverview',
   'revealProject',
   'backupProject',
+  'updateCriteria',
   'suggestMesh',
   'previewSearch',
   'browseSearch',
@@ -69,7 +91,19 @@ export const INVOKE_METHODS = [
   'listRecords',
   'screeningQueue',
   'getRecord',
-  'decide'
+  'decide',
+  'addNote',
+  'setManualTag',
+  'listExclusionReasons',
+  'addExclusionReason',
+  'renameExclusionReason',
+  'setExclusionReasonRetired',
+  'listCollections',
+  'createCollection',
+  'deleteCollection',
+  'setInCollection',
+  'exportRecords',
+  'exportPrismaSummary'
 ] as const satisfies readonly InvokeMethod[]
 
 // Fails to compile if a method is added to InvokeApi but not listed above.

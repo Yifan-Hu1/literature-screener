@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { AppSettings, ProjectOverview } from '../../shared/types'
 import { api, errorMessage } from './api'
+import logo from '../../../build/icon.svg'
 import { StartScreen } from './screens/StartScreen'
 import { OverviewScreen } from './screens/OverviewScreen'
 import { SearchScreen, resetSearchScreen } from './screens/SearchScreen'
-import { LibraryScreen } from './screens/LibraryScreen'
+import { LibraryScreen, resetLibraryScreen } from './screens/LibraryScreen'
 import { ScreeningScreen } from './screens/ScreeningScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 
@@ -51,6 +52,10 @@ export function App() {
   return (
     <div className="shell">
       <nav className="sidebar">
+        <div className="sidebar-brand">
+          <img src={logo} alt="" />
+          <span>Literature Screener</span>
+        </div>
         <div className="sidebar-project" title={project.path}>
           <div className="sidebar-label">Project</div>
           <div className="sidebar-name">{project.name}</div>
@@ -74,6 +79,7 @@ export function App() {
           onClick={async () => {
             await api.closeProject()
             resetSearchScreen()
+            resetLibraryScreen()
             setProject(null)
             setSettings(await api.getSettings())
           }}
@@ -82,7 +88,7 @@ export function App() {
         </button>
       </nav>
       <main className="content">
-        {view === 'overview' && <OverviewScreen project={project} />}
+        {view === 'overview' && <OverviewScreen project={project} onChanged={setProject} />}
         {view === 'search' && <SearchScreen onImported={refresh} />}
         {view === 'library' && (
           <LibraryScreen

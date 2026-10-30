@@ -2,13 +2,14 @@
 // workflow against the real PubMed, and saves screenshots to test-results/e2e/.
 // Run with: npm run test:e2e
 import { _electron as electron } from 'playwright-core'
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import electronPath from 'electron'
 
 const root = resolve(import.meta.dirname, '../..')
 const shots = join(root, 'test-results/e2e')
+rmSync(shots, { recursive: true, force: true })
 mkdirSync(shots, { recursive: true })
 const work = mkdtempSync(join(tmpdir(), 'ls-e2e-'))
 const userData = join(work, 'userData')
@@ -91,8 +92,30 @@ try {
   await shot(page, 'search-imported')
 
   await page.getByRole('button', { name: /^Library/ }).click()
-  await page.getByText(/Showing 1–/).waitFor()
+  await page.getByText(/records\. Click a title/).waitFor()
+  await page.getByPlaceholder('New collection…').fill('Key papers')
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.locator('.table tbody input[type=checkbox]').nth(0).check()
+  await page.locator('.table tbody input[type=checkbox]').nth(1).check()
+  await page.locator('.selection-bar select').selectOption({ label: 'Key papers' })
+  await page.getByRole('button', { name: 'Add to collection' }).click()
+  await page.getByText(/Added 2 records to “Key papers”/).waitFor()
+  await page.getByRole('button', { name: 'Filter by organism / system' }).click()
+  await page.locator('.library-systems').getByRole('button', { name: 'Zebrafish', exact: true }).click()
   await shot(page, 'library')
+  const csvPath = join(work, 'export.csv')
+  await app.evaluate(({ dialog }, f) => {
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath: f })
+  }, csvPath)
+  await page.getByRole('button', { name: 'CSV (Excel)' }).click()
+  await page.getByText(/Exported \d+ records to/).waitFor()
+  const csv = readFileSync(csvPath, 'utf8')
+  const exported = (csv.match(/https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/\d+\//g) ?? []).length
+  const shown = Number((await page.getByText(/records\. Click a title/).innerText()).match(/^[\d,]+/)[0])
+  if (!csv.includes('record_id,pmid') || exported !== shown) throw new Error(`CSV has ${exported} records, Library shows ${shown}`)
+  console.log(`  ✓ CSV export (${exported} records, matching the Library filter)`)
+  await page.getByRole('button', { name: 'Hide organism / system (1)' }).click()
+  await page.locator('.library-systems').waitFor({ state: 'detached' })
 
   await page.getByRole('button', { name: /^Screening/ }).click()
   await page.getByText(/Record 1 of/).waitFor()
@@ -106,6 +129,9 @@ try {
   await page.keyboard.press('i')
   await onRecord(2)
   await page.keyboard.press('e')
+  await page.getByText('Why exclude?').waitFor()
+  await shot(page, 'screening-reasons')
+  await page.keyboard.press('6')
   await onRecord(3)
   await page.keyboard.press('u')
   await onRecord(4)
@@ -120,6 +146,12 @@ try {
   await page.locator('.history .badge').nth(1).waitFor()
   const history = await page.locator('.history .badge').allInnerTexts()
   if (history.join(',') !== 'Include,Exclude') throw new Error(`Unexpected history for record 2: ${history}`)
+  await page.getByText('Reason: Not primary research').waitFor()
+  await page.getByPlaceholder('Add a note about this paper…').fill('Check the methods section.')
+  await page.getByRole('button', { name: 'Save note' }).click()
+  await page.locator('.note', { hasText: 'Check the methods section.' }).waitFor()
+  await page.locator('.system-row').first().getByRole('button', { name: /Doesn.t apply/ }).click()
+  await page.getByText('you marked: does not apply').waitFor()
   await shot(page, 'screening-history')
 
   const screenedBefore = await page.getByRole('button', { name: /^Screening/ }).innerText()
@@ -136,6 +168,23 @@ try {
   if (screenedAfter !== screenedBefore) throw new Error(`Progress not restored: ${screenedBefore} vs ${screenedAfter}`)
   console.log(`  ✓ progress restored after restart (${screenedAfter.replace(/\s+/g, ' ')})`)
   await shot(page, 'overview-after-restart')
+
+  await page.getByRole('button', { name: 'Edit criteria' }).click()
+  await page.locator('textarea').nth(0).fill('Primary research in zebrafish\nMicroglia as a main focus\nIn vivo data')
+  await page.getByRole('button', { name: 'Save as new version' }).click()
+  await page.getByText('Criteria version 2.').waitFor()
+  const prismaPath = join(work, 'prisma.txt')
+  await app.evaluate(({ dialog }, f) => {
+    dialog.showSaveDialog = async () => ({ canceled: false, filePath: f })
+  }, prismaPath)
+  await page.getByRole('button', { name: 'Export PRISMA summary…' }).click()
+  await page.getByText(/PRISMA summary saved/).waitFor()
+  const prisma = readFileSync(prismaPath, 'utf8')
+  // Record 2 was excluded (with a reason) and later changed to include, so only the latest decisions count.
+  if (!prisma.includes('Records screened: 3') || !prisma.includes('Included: 2')) {
+    throw new Error(`Unexpected PRISMA summary:\n${prisma}`)
+  }
+  console.log('  ✓ criteria v2 and PRISMA export')
 
   await page.getByRole('button', { name: 'Settings' }).click()
   await shot(page, 'settings')

@@ -80,7 +80,9 @@ export function buildPubMedQuery(f: SearchFilters): string {
   if (text) parts.push(`(${text})`)
 
   const presets = f.systems.map(getPreset).filter((p): p is SystemPreset => !!p)
-  if (presets.length) parts.push(`(${presets.map(systemQuery).join(' OR ')})`)
+  if (presets.length) {
+    parts.push(`(${presets.map(systemQuery).join(f.systemsMode === 'all' ? ' AND ' : ' OR ')})`)
+  }
 
   if (f.articleTypes.length) {
     parts.push(`(${f.articleTypes.map((t) => `"${t}"[pt]`).join(' OR ')})`)
@@ -112,5 +114,6 @@ export const EMPTY_FILTERS: SearchFilters = {
   yearTo: null,
   articleTypes: [],
   systems: [],
+  systemsMode: 'any',
   primaryResearchOnly: false
 }
