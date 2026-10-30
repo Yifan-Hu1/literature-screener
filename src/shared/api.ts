@@ -10,6 +10,7 @@ import type {
   ImportResult,
   MeshSuggestion,
   NewProjectInput,
+  ProjectUpdateSummary,
   ProjectOverview,
   RecordDetail,
   RecordFilter,
@@ -44,6 +45,10 @@ export interface InvokeApi {
   saveFromBrowse(pmid: string): Promise<void>
   importSearch(filters: SearchFilters): Promise<ImportResult>
   listSearches(): Promise<SearchLogEntry[]>
+  /** Keep a search up to date every `intervalDays` days; null stops it. */
+  setSearchSchedule(searchId: number, intervalDays: number | null): Promise<SearchLogEntry[]>
+  /** Runs one kept-up-to-date search immediately (open project). */
+  runSearchUpdateNow(searchId: number): Promise<ProjectUpdateSummary>
 
   listRecords(query: RecordQuery): Promise<RecordPage>
   screeningQueue(filter: RecordFilter): Promise<number[]>
@@ -88,6 +93,8 @@ export const INVOKE_METHODS = [
   'saveFromBrowse',
   'importSearch',
   'listSearches',
+  'setSearchSchedule',
+  'runSearchUpdateNow',
   'listRecords',
   'screeningQueue',
   'getRecord',
@@ -112,7 +119,10 @@ export const ALL_METHODS_LISTED: [Exclude<InvokeMethod, (typeof INVOKE_METHODS)[
   : never = true
 
 export const IMPORT_PROGRESS_CHANNEL = 'import-progress'
+export const UPDATES_FINISHED_CHANNEL = 'updates-finished'
 
 export interface Api extends InvokeApi {
   onImportProgress(listener: (progress: ImportProgress) => void): () => void
+  /** Automatic updates that found something new (only sent when there is news). */
+  onUpdatesFinished(listener: (summaries: ProjectUpdateSummary[]) => void): () => void
 }

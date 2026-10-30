@@ -158,6 +158,7 @@ export function LibraryScreen({ onOpenRecord }: { onOpenRecord: (id: number) => 
                 <option value="all">All sources</option>
                 <option value="structured">From imported searches</option>
                 <option value="hand_picked">Hand-picked</option>
+                <option value="update">New from automatic updates</option>
               </select>
               <button type="button" onClick={() => setShowSystems(!showSystems)}>
                 {showSystems ? 'Hide' : 'Filter by'} organism / system{filter.systems.length ? ` (${filter.systems.length})` : ''}

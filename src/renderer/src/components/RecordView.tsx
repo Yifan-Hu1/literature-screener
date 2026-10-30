@@ -5,8 +5,9 @@ import type { RecordDetail } from '../../../shared/types'
 import { api, formatDate } from '../api'
 import { SystemEditor } from './SystemEditor'
 
-// "Retraction of Publication" is the older name of "Retraction Notice".
-const RETRACTION_TYPES = ['Retracted Publication', 'Retraction Notice', 'Retraction of Publication', 'Expression of Concern']
+// Publication types meaning this record is itself a notice. ("Retraction of Publication"
+// is the older name of "Retraction Notice".) Retractions of this paper come from record.alerts.
+const NOTICE_TYPES = ['Retraction Notice', 'Retraction of Publication', 'Expression of Concern']
 
 function Link({ href, children }: { href: string; children: ReactNode }) {
   return (
@@ -38,11 +39,26 @@ interface Props {
 }
 
 export function RecordView({ record, onSetTag }: Props) {
-  const warnings = record.publicationTypes.filter((t) => RETRACTION_TYPES.includes(t))
+  const noticeTypes = record.publicationTypes.filter((t) => NOTICE_TYPES.includes(t))
   return (
     <article className="record">
-      {warnings.length > 0 && (
-        <div className="alert alert-error">PubMed lists this record as: {warnings.join(', ')}</div>
+      {record.alerts.map((a, i) => (
+        <div key={i} className="alert alert-error">
+          <strong>{a.kind === 'retraction' ? 'This paper has been retracted.' : 'An expression of concern has been published about this paper.'}</strong>{' '}
+          {a.noticePmid && (
+            <>
+              See the notice: <Link href={`https://pubmed.ncbi.nlm.nih.gov/${a.noticePmid}/`}>PMID {a.noticePmid}</Link>.{' '}
+            </>
+          )}
+          <span className="small">
+            {a.foundBy === 'import'
+              ? 'Shown in the PubMed record when it was retrieved.'
+              : `Found by an automatic check on ${formatDate(a.detectedAt)}, after the paper was added.`}
+          </span>
+        </div>
+      ))}
+      {noticeTypes.length > 0 && (
+        <div className="alert alert-warn">This record is itself a notice: {noticeTypes.join(', ')}.</div>
       )}
       <h2 className="record-title">{record.title}</h2>
       <p className="record-authors">{authorList(record)}</p>

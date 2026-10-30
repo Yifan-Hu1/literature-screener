@@ -11,7 +11,9 @@ import type {
   DecisionInput,
   ExclusionReason,
   ProjectOverview,
+  PublicationNotice,
   PubMedRecord,
+  RecordAlert,
   RecordDetail,
   RecordFilter,
   RecordNote,
@@ -27,6 +29,7 @@ import type {
 } from '../../shared/types'
 import { APP_ID, DEFAULT_EXCLUSION_REASONS, MIGRATIONS, SCHEMA_VERSION } from './schema'
 import { TAGGING_VERSION, deriveSystemTags } from '../tagging'
+import { parseNotices } from '../sources/pubmed/parse'
 
 export const DB_FILE = 'project.db'
 const STAGE = 'title_abstract'
@@ -39,6 +42,8 @@ export interface Reviewer {
 }
 
 export interface NewSearch {
+  /** Set for automatic update runs of an earlier search. */
+  parentSearchId?: number | null
   source: string
   mode: SearchMode
   filters: SearchFilters
@@ -47,6 +52,17 @@ export interface NewSearch {
   totalCount: number | null
   status: SearchStatus
 }
+
+export interface ScheduledSearch {
+  searchId: number
+  intervalDays: number
+  dueAt: string
+  lastRunAt: string | null
+  querySent: string
+  filters: SearchFilters
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 const README = `This folder is a Literature Screener project.
 
@@ -104,6 +120,7 @@ export class ProjectStore {
       ).run(info.inclusionCriteria.trim(), info.exclusionCriteria.trim(), t, reviewer.id)
       store.seedExclusionReasons()
       store.setMeta('tagging_version', String(TAGGING_VERSION))
+      store.setMeta('notices_backfilled', '1')
     })
     return store
   }
@@ -118,6 +135,7 @@ export class ProjectStore {
       if (store.getMeta('app') !== APP_ID) throw new Error('This project.db was not created by Literature Screener.')
       store.seedExclusionReasons()
       store.refreshAutomaticTags()
+      store.backfillImportAlerts()
     } catch (e) {
       store.close()
       throw e
@@ -187,6 +205,16 @@ export class ProjectStore {
     })
   }
 
+  /** Projects created before alerts existed: read notices from the stored original XML once. */
+  private backfillImportAlerts() {
+    if (this.getMeta('notices_backfilled') === '1') return
+    const rows = this.db.prepare('SELECT id, raw_xml, retrieved_at FROM records').all() as Row[]
+    this.tx(() => {
+      for (const r of rows) this.addAlerts(Number(r.id), parseNotices(r.raw_xml), 'import', r.retrieved_at)
+      this.setMeta('notices_backfilled', '1')
+    })
+  }
+
   private currentCriteria(): Row {
     return this.db.prepare('SELECT * FROM criteria_versions ORDER BY version DESC LIMIT 1').get() as Row
   }
@@ -230,9 +258,9 @@ export class ProjectStore {
   insertSearch(s: NewSearch, reviewer: Reviewer): number {
     this.ensureReviewer(reviewer)
     const res = this.db.prepare(
-      `INSERT INTO searches (source, mode, filters_json, query_sent, query_translation, total_count, status, run_at, reviewer_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(s.source, s.mode, JSON.stringify(s.filters), s.querySent, s.queryTranslation, s.totalCount, s.status, now(), reviewer.id)
+      `INSERT INTO searches (source, mode, filters_json, query_sent, query_translation, total_count, status, run_at, reviewer_id, parent_search_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(s.source, s.mode, JSON.stringify(s.filters), s.querySent, s.queryTranslation, s.totalCount, s.status, now(), reviewer.id, s.parentSearchId ?? null)
     return Number(res.lastInsertRowid)
   }
 
@@ -286,6 +314,7 @@ export class ProjectStore {
             ).lastInsertRowid
           )
           for (const tag of deriveSystemTags(r)) insertTag.run(recordId, tag.system, tag.source, tag.evidence, t)
+          this.addAlerts(recordId, r.notices, 'import', t)
           newCount++
         }
         link.run(searchId, recordId, positions?.get(r.pmid) ?? null, how, existing ? 0 : 1, t)
@@ -305,11 +334,25 @@ export class ProjectStore {
 
   listSearches(): SearchLogEntry[] {
     const rows = this.db.prepare(
-      `SELECT s.*, rv.name AS reviewer_name FROM searches s
-       LEFT JOIN reviewers rv ON rv.id = s.reviewer_id ORDER BY s.id DESC`
+      `SELECT s.*, rv.name AS reviewer_name, sc.interval_days, sc.created_at AS schedule_created_at,
+         sc.last_run_at, sc.last_success_at, sc.last_message
+       FROM searches s
+       LEFT JOIN reviewers rv ON rv.id = s.reviewer_id
+       LEFT JOIN search_schedules sc ON sc.search_id = s.id
+       ORDER BY s.id DESC`
     ).all() as Row[]
     return rows.map((s) => ({
       id: Number(s.id),
+      parentSearchId: s.parent_search_id == null ? null : Number(s.parent_search_id),
+      schedule:
+        s.interval_days == null
+          ? null
+          : {
+              intervalDays: Number(s.interval_days),
+              nextDueAt: dueAt(s.last_success_at ?? s.schedule_created_at, Number(s.interval_days)),
+              lastRunAt: s.last_run_at,
+              lastMessage: s.last_message
+            },
       source: s.source,
       mode: s.mode,
       filters: JSON.parse(s.filters_json),
@@ -357,6 +400,7 @@ export class ProjectStore {
     }
     if (f.origin === 'structured') where.push('structured = 1')
     if (f.origin === 'hand_picked') where.push('hand_picked = 1')
+    if (f.origin === 'update') where.push('from_update = 1')
 
     const sql = `SELECT * FROM (
         SELECT r.id, r.pmid, r.title, r.journal, r.pub_year,
@@ -364,6 +408,8 @@ export class ProjectStore {
              ORDER BY d.id DESC LIMIT 1) AS decision,
           EXISTS (SELECT 1 FROM search_records sr WHERE sr.record_id = r.id AND sr.how = 'search_import') AS structured,
           EXISTS (SELECT 1 FROM search_records sr WHERE sr.record_id = r.id AND sr.how = 'hand_picked') AS hand_picked,
+          EXISTS (SELECT 1 FROM search_records sr JOIN searches s ON s.id = sr.search_id
+                  WHERE sr.record_id = r.id AND sr.was_new = 1 AND s.parent_search_id IS NOT NULL) AS from_update,
           (SELECT group_concat(rs.system) FROM record_systems rs WHERE rs.record_id = r.id) AS systems
         FROM records r ${inner.length ? `WHERE ${inner.join(' AND ')}` : ''}
       ) ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`
@@ -415,6 +461,10 @@ export class ProjectStore {
       ).all(id) as Row[]
     ).map((n) => ({ id: Number(n.id), text: n.text, reviewerName: n.reviewer_name, createdAt: n.created_at }))
 
+    const alerts: RecordAlert[] = (
+      this.db.prepare('SELECT kind, notice_pmid, found_by, detected_at FROM record_alerts WHERE record_id = ? ORDER BY id').all(id) as Row[]
+    ).map((a) => ({ kind: a.kind, noticePmid: a.notice_pmid || null, foundBy: a.found_by, detectedAt: a.detected_at }))
+
     const collectionIds = (
       this.db.prepare('SELECT collection_id FROM collection_records WHERE record_id = ?').all(id) as Row[]
     ).map((c) => Number(c.collection_id))
@@ -465,6 +515,7 @@ export class ProjectStore {
       tags,
       systems,
       notes,
+      alerts,
       collectionIds,
       origins,
       history,
@@ -597,6 +648,76 @@ export class ProjectStore {
     })
   }
 
+  // ---------- automatic updates & alerts ----------
+
+  /** Keep an import-all search up to date every `intervalDays`; null stops it. */
+  setSchedule(searchId: number, intervalDays: number | null) {
+    const s = this.db.prepare('SELECT mode, parent_search_id FROM searches WHERE id = ?').get(searchId) as Row | undefined
+    if (!s) throw new Error(`Search #${searchId} not found.`)
+    if (s.mode !== 'structured' || s.parent_search_id != null) {
+      throw new Error('Only original "Import all" searches can be kept up to date.')
+    }
+    if (intervalDays === null) {
+      this.db.prepare('DELETE FROM search_schedules WHERE search_id = ?').run(searchId)
+      return
+    }
+    if (!Number.isInteger(intervalDays) || intervalDays < 1 || intervalDays > 365) {
+      throw new Error('Choose an interval between 1 and 365 days.')
+    }
+    this.db.prepare(
+      `INSERT INTO search_schedules (search_id, interval_days, created_at) VALUES (?, ?, ?)
+       ON CONFLICT(search_id) DO UPDATE SET interval_days = excluded.interval_days`
+    ).run(searchId, intervalDays, now())
+  }
+
+  scheduledSearches(): ScheduledSearch[] {
+    return (
+      this.db.prepare(
+        `SELECT sc.*, s.query_sent, s.filters_json FROM search_schedules sc JOIN searches s ON s.id = sc.search_id ORDER BY sc.search_id`
+      ).all() as Row[]
+    ).map((r) => ({
+      searchId: Number(r.search_id),
+      intervalDays: Number(r.interval_days),
+      dueAt: dueAt(r.last_success_at ?? r.created_at, Number(r.interval_days)),
+      lastRunAt: r.last_run_at,
+      querySent: r.query_sent,
+      filters: JSON.parse(r.filters_json)
+    }))
+  }
+
+  markScheduleRun(searchId: number, success: boolean, message: string) {
+    const t = now()
+    this.db.prepare(
+      `UPDATE search_schedules SET last_run_at = ?, last_message = ?,
+         last_success_at = CASE WHEN ? THEN ? ELSE last_success_at END WHERE search_id = ?`
+    ).run(t, message, success ? 1 : 0, t, searchId)
+  }
+
+  /** Records whose latest decision is include or unsure: these are re-checked for new notices. */
+  recordsToRecheck(): { id: number; pmid: string }[] {
+    return (
+      this.db.prepare(
+        `SELECT r.id, r.pmid FROM records r JOIN (${LATEST_DECISION_SQL}) d ON d.record_id = r.id
+         WHERE d.decision IN ('include', 'unsure') AND r.pmid IS NOT NULL`
+      ).all() as Row[]
+    ).map((r) => ({ id: Number(r.id), pmid: String(r.pmid) }))
+  }
+
+  /** Stores notices not seen before; returns how many were new. */
+  addAlerts(recordId: number, notices: PublicationNotice[], foundBy: 'import' | 'recheck', at = now()): number {
+    const insert = this.db.prepare(
+      'INSERT OR IGNORE INTO record_alerts (record_id, kind, notice_pmid, found_by, detected_at) VALUES (?, ?, ?, ?, ?)'
+    )
+    const known = this.db.prepare('SELECT 1 FROM record_alerts WHERE record_id = ? AND kind = ?')
+    let added = 0
+    for (const n of notices) {
+      // A retraction without a notice PMID duplicates one we already know about.
+      if (!n.noticePmid && known.get(recordId, n.kind)) continue
+      added += Number(insert.run(recordId, n.kind, n.noticePmid ?? '', foundBy, at).changes)
+    }
+    return added
+  }
+
   // ---------- export ----------
 
   /** The latest decision row for each record (title/abstract stage), with reviewer name. */
@@ -648,6 +769,10 @@ const LATEST_DECISION_SQL = `
   SELECT d.record_id, d.decision FROM decisions d
   WHERE d.stage = '${STAGE}'
     AND d.id = (SELECT MAX(d2.id) FROM decisions d2 WHERE d2.record_id = d.record_id AND d2.stage = d.stage)`
+
+function dueAt(fromIso: string, intervalDays: number): string {
+  return new Date(new Date(fromIso).getTime() + intervalDays * DAY_MS).toISOString()
+}
 
 function openDb(file: string): DatabaseSync {
   const db = new DatabaseSync(file)

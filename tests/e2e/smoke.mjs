@@ -20,7 +20,7 @@ const errors = []
 let app
 let step = 0
 // Shells started from VS Code may set this, which would make Electron behave like plain Node.
-const env = { ...process.env, LS_USER_DATA_DIR: userData }
+const env = { ...process.env, LS_USER_DATA_DIR: userData, LS_DISABLE_AUTO_UPDATES: '1' }
 delete env.ELECTRON_RUN_AS_NODE
 const launch = () => electron.launch({ executablePath: electronPath, args: [root], env })
 
@@ -185,6 +185,15 @@ try {
     throw new Error(`Unexpected PRISMA summary:\n${prisma}`)
   }
   console.log('  ✓ criteria v2 and PRISMA export')
+
+  await page.getByRole('button', { name: '↻ Keep up to date…' }).click()
+  await page.getByRole('button', { name: '2 weeks' }).click()
+  await page.locator('.schedule').getByRole('button', { name: 'Save' }).click()
+  await page.getByText(/Kept up to date every 14 days/).waitFor()
+  await page.getByRole('button', { name: 'Check now' }).click()
+  await page.getByText(/^0 new papers\./).waitFor({ timeout: 60000 })
+  await page.getByText('Update of #2').waitFor()
+  await shot(page, 'overview-updates')
 
   await page.getByRole('button', { name: 'Settings' }).click()
   await shot(page, 'settings')

@@ -6,7 +6,8 @@ literature in local, portable project folders.
 **Status:** Milestone 2. Projects, PubMed search (concept builder with MeSH suggestions,
 organism/system and study-approach filters, primary-research filter), import or hand-pick,
 title/abstract screening with exclusion reasons, comments and notes, organism-label
-corrections, collections, and CSV / RIS / PRISMA-summary export.
+corrections, collections, CSV / RIS / PRISMA-summary export, and automatic search updates
+(new papers and new retraction notices are checked whenever the app is open).
 AI screening and full-text retrieval are not built yet.
 
 ## Running the app (development)
@@ -64,6 +65,7 @@ src/main/            Electron main process (Node): database, PubMed, settings
   search.ts          search / browse / import workflows
   tagging.ts         organism & experimental-system tagging
   export.ts          CSV, RIS and PRISMA-summary exports
+  updates.ts         scheduled search updates and retraction re-checks
   ipc.ts             connects UI calls to the services above
 src/preload/         the narrow bridge between UI and main process
 src/renderer/        the user interface (React)

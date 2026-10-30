@@ -165,6 +165,29 @@ export const MIGRATIONS: string[] = [
     SELECT t.record_id, t.system FROM system_tags t
     WHERE t.source <> 'manual' AND NOT EXISTS (
       SELECT 1 FROM system_tags m WHERE m.record_id = t.record_id AND m.system = t.system AND m.source = 'manual');
+  `,
+
+  /* v3: automatic search updates and retraction / expression-of-concern alerts */ `
+  ALTER TABLE searches ADD COLUMN parent_search_id INTEGER REFERENCES searches(id);
+
+  CREATE TABLE search_schedules (
+    search_id     INTEGER PRIMARY KEY REFERENCES searches(id),
+    interval_days INTEGER NOT NULL CHECK (interval_days >= 1),
+    created_at    TEXT NOT NULL,
+    last_run_at   TEXT,
+    last_success_at TEXT,
+    last_message  TEXT
+  );
+
+  CREATE TABLE record_alerts (
+    id          INTEGER PRIMARY KEY,
+    record_id   INTEGER NOT NULL REFERENCES records(id),
+    kind        TEXT NOT NULL CHECK (kind IN ('retraction', 'expression_of_concern')),
+    notice_pmid TEXT NOT NULL DEFAULT '',
+    found_by    TEXT NOT NULL CHECK (found_by IN ('import', 'recheck')),
+    detected_at TEXT NOT NULL,
+    UNIQUE (record_id, kind, notice_pmid)
+  );
   `
 ]
 

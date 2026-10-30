@@ -3,6 +3,7 @@ import type { ProjectOverview, SearchLogEntry } from '../../../shared/types'
 import { api, errorMessage, formatDate } from '../api'
 import { ErrorBox } from '../components/common'
 import { CriteriaCard, ExclusionReasonsCard } from '../components/ProjectSettings'
+import { ScheduleControl } from '../components/ScheduleControl'
 
 const STATUS_LABEL: Record<SearchLogEntry['status'], string> = {
   in_progress: 'In progress',
@@ -68,10 +69,26 @@ export function OverviewScreen({ project, onChanged }: Props) {
                 <tr key={s.id}>
                   <td>{s.id}</td>
                   <td className="nowrap">{formatDate(s.runAt)}</td>
-                  <td>{s.mode === 'structured' ? 'Import all' : 'Hand-picked'}</td>
+                  <td>
+                    {s.parentSearchId != null
+                      ? `Update of #${s.parentSearchId}`
+                      : s.mode === 'structured'
+                        ? 'Import all'
+                        : 'Hand-picked'}
+                  </td>
                   <td>
                     <code className="query">{s.querySent}</code>
                     {s.message && <div className="small muted">{s.message}</div>}
+                    {s.mode === 'structured' && s.parentSearchId == null && (
+                      <ScheduleControl
+                        search={s}
+                        onChanged={setSearches}
+                        onRan={async () => {
+                          setSearches(await api.listSearches())
+                          onChanged(await api.getOverview())
+                        }}
+                      />
+                    )}
                   </td>
                   <td className="num">{s.totalCount?.toLocaleString() ?? '—'}</td>
                   <td className="num">{s.retrievedCount.toLocaleString()}</td>

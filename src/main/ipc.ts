@@ -1,7 +1,7 @@
 // Connects the UI's api calls (see shared/api.ts) to the main-process services.
-import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { IMPORT_PROGRESS_CHANNEL, INVOKE_METHODS, type InvokeApi } from '../shared/api'
-import type { ProjectOverview } from '../shared/types'
+import { BrowserWindow, Notification, dialog, ipcMain, shell } from 'electron'
+import { IMPORT_PROGRESS_CHANNEL, INVOKE_METHODS, UPDATES_FINISHED_CHANNEL, type InvokeApi } from '../shared/api'
+import type { ProjectOverview, ProjectUpdateSummary } from '../shared/types'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { cloudSyncWarning } from './cloud'
@@ -10,6 +10,9 @@ import { ProjectStore } from './project/store'
 import { SearchService } from './search'
 import { Settings } from './settings'
 import { PubMedClient } from './sources/pubmed/client'
+import { updateProject, updateProjects } from './updates'
+
+const UPDATE_CHECK_INTERVAL_MS = 3 * 60 * 60 * 1000
 
 export function openExternalSafe(url: string) {
   try {
@@ -19,7 +22,7 @@ export function openExternalSafe(url: string) {
   }
 }
 
-export function registerIpc(getWindow: () => BrowserWindow | null): { closeProject: () => void } {
+export function registerIpc(getWindow: () => BrowserWindow | null): { closeProject: () => void; startUpdateChecks: () => void } {
   const settings = new Settings()
   let project: ProjectStore | null = null
 
@@ -135,6 +138,16 @@ export function registerIpc(getWindow: () => BrowserWindow | null): { closeProje
     async listSearches() {
       return requireProject().listSearches()
     },
+    async setSearchSchedule(searchId, intervalDays) {
+      const p = requireProject()
+      p.setSchedule(searchId, intervalDays)
+      return p.listSearches()
+    },
+    async runSearchUpdateNow(searchId) {
+      const summary = await updateProject(requireProject().path, { client: getClient(), reviewer: requireReviewer() }, searchId)
+      announce([summary])
+      return summary
+    },
 
     async listRecords(query) {
       return requireProject().listRecords(query)
@@ -216,10 +229,45 @@ export function registerIpc(getWindow: () => BrowserWindow | null): { closeProje
     return res.filePath
   }
 
+  /** Tells the user about updates that found new papers or new notices. */
+  const announce = (summaries: ProjectUpdateSummary[]) => {
+    const news = summaries.filter((s) => s.newAlerts > 0 || s.runs.some((r) => r.newRecords > 0))
+    if (news.length === 0) return
+    getWindow()?.webContents.send(UPDATES_FINISHED_CHANNEL, news)
+    if (Notification.isSupported()) {
+      const body = news
+        .map((s) => {
+          const papers = s.runs.reduce((n, r) => n + r.newRecords, 0)
+          const parts = [papers && `${papers} new paper${papers === 1 ? '' : 's'}`, s.newAlerts && `${s.newAlerts} new retraction/concern notice${s.newAlerts === 1 ? '' : 's'}`]
+          return `${s.projectName}: ${parts.filter(Boolean).join(', ')}`
+        })
+        .join('\n')
+      const n = new Notification({ title: 'Literature Screener updates', body })
+      n.on('click', () => getWindow()?.show())
+      n.show()
+    }
+  }
+
+  let updating = false
+  const runScheduledUpdates = async () => {
+    const reviewer = settings.reviewer()
+    if (updating || !reviewer.name) return
+    updating = true
+    try {
+      announce(await updateProjects(settings.view().recentProjects, { client: getClient(), reviewer }))
+    } finally {
+      updating = false
+    }
+  }
+  const startUpdateChecks = () => {
+    setTimeout(() => void runScheduledUpdates(), 5000)
+    setInterval(() => void runScheduledUpdates(), UPDATE_CHECK_INTERVAL_MS)
+  }
+
   for (const method of INVOKE_METHODS) {
     const fn = handlers[method] as (...args: unknown[]) => Promise<unknown>
     ipcMain.handle(method, (_event, ...args) => fn(...args))
   }
 
-  return { closeProject: () => switchProject(null) }
+  return { closeProject: () => switchProject(null), startUpdateChecks }
 }

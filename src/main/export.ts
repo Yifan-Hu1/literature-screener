@@ -107,11 +107,11 @@ export function prismaSummary(store: ProjectStore): string {
     `  Excluded: ${o.counts.exclude}`,
     ...[...reasons].sort((a, b) => b[1] - a[1]).map(([reason, n]) => `    - ${reason}: ${n}`),
     '',
-    'SEARCHES (import-all searches, exactly as sent to PubMed)'
+    'SEARCHES (import-all searches and their automatic updates, exactly as sent to PubMed)'
   ]
   for (const s of searches.reverse()) {
     lines.push(
-      `  #${s.id}  ${s.runAt}  status: ${s.status}`,
+      `  #${s.id}  ${s.runAt}  status: ${s.status}${s.parentSearchId != null ? `  (automatic update of #${s.parentSearchId})` : ''}`,
       `      query: ${s.querySent}`,
       `      PubMed results: ${s.totalCount ?? 'unknown'}, retrieved: ${s.retrievedCount}, new: ${s.newCount}, already in project: ${s.duplicateCount}`
     )

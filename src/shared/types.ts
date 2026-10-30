@@ -2,7 +2,7 @@
 
 export type Decision = 'include' | 'exclude' | 'unsure'
 export type DecisionFilter = Decision | 'undecided' | 'all'
-export type OriginFilter = 'all' | 'structured' | 'hand_picked'
+export type OriginFilter = 'all' | 'structured' | 'hand_picked' | 'update'
 export type MatchMode = 'any' | 'all'
 export type ExportFormat = 'csv' | 'ris'
 export type ScreeningStage = 'title_abstract' | 'full_text'
@@ -25,6 +25,15 @@ export interface MeshHeading {
   qualifiers: string[]
 }
 
+export type NoticeKind = 'retraction' | 'expression_of_concern'
+
+/** A retraction or expression of concern that PubMed links to a paper. */
+export interface PublicationNotice {
+  kind: NoticeKind
+  /** PMID of the notice itself, when PubMed gives one. */
+  noticePmid: string | null
+}
+
 /** A publication exactly as parsed from the PubMed record (no interpretation). */
 export interface PubMedRecord {
   pmid: string
@@ -41,6 +50,7 @@ export interface PubMedRecord {
   mesh: MeshHeading[]
   keywords: string[]
   languages: string[]
+  notices: PublicationNotice[]
   rawXml: string
 }
 
@@ -120,8 +130,19 @@ export interface ImportResult {
   message: string
 }
 
+export interface SearchSchedule {
+  intervalDays: number
+  nextDueAt: string
+  lastRunAt: string | null
+  lastMessage: string | null
+}
+
 export interface SearchLogEntry {
   id: number
+  /** For automatic update runs: the search being kept up to date. */
+  parentSearchId: number | null
+  /** Only on searches that are kept up to date. */
+  schedule: SearchSchedule | null
   source: string
   mode: SearchMode
   filters: SearchFilters
@@ -163,6 +184,30 @@ export interface RecordSummary {
   structured: boolean
   handPicked: boolean
   systems: string[]
+}
+
+export interface RecordAlert {
+  kind: NoticeKind
+  noticePmid: string | null
+  detectedAt: string
+  /** 'import' = present when the record was retrieved; 'recheck' = found by a later update. */
+  foundBy: 'import' | 'recheck'
+}
+
+/** Outcome of one automatic (or "run now") update of a search. */
+export interface UpdateRun {
+  searchId: number
+  status: SearchStatus
+  newRecords: number
+  message: string
+}
+
+export interface ProjectUpdateSummary {
+  projectPath: string
+  projectName: string
+  runs: UpdateRun[]
+  /** New retraction / expression-of-concern notices on included or unsure papers. */
+  newAlerts: number
 }
 
 export interface RecordFilter {
@@ -258,6 +303,7 @@ export interface RecordDetail {
   /** Systems that currently apply, after researcher corrections. */
   systems: string[]
   notes: RecordNote[]
+  alerts: RecordAlert[]
   collectionIds: number[]
   origins: RecordOrigin[]
   history: DecisionEntry[]

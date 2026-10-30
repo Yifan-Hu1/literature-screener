@@ -12,6 +12,7 @@ import { DECISION_LABEL, DecisionBadge, ErrorBox } from '../components/common'
 import { RecordView } from '../components/RecordView'
 
 interface Props {
+  initialOrigin: OriginFilter
   focusRecordId: number | null
   reviewerName: string
   onDecided: () => void
@@ -19,9 +20,9 @@ interface Props {
 
 const KEYS: Record<string, Decision> = { i: 'include', e: 'exclude', u: 'unsure' }
 
-export function ScreeningScreen({ focusRecordId, reviewerName, onDecided }: Props) {
+export function ScreeningScreen({ initialOrigin, focusRecordId, reviewerName, onDecided }: Props) {
   const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>(focusRecordId ? 'all' : 'undecided')
-  const [origin, setOrigin] = useState<OriginFilter>('all')
+  const [origin, setOrigin] = useState<OriginFilter>(initialOrigin)
   const [queue, setQueue] = useState<number[] | null>(null)
   const [index, setIndex] = useState(0)
   const [record, setRecord] = useState<RecordDetail | null>(null)
@@ -168,6 +169,7 @@ export function ScreeningScreen({ focusRecordId, reviewerName, onDecided }: Prop
             <option value="all">All sources</option>
             <option value="structured">From imported searches</option>
             <option value="hand_picked">Hand-picked</option>
+            <option value="update">New from automatic updates</option>
           </select>
         </div>
       </div>

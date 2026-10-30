@@ -129,74 +129,86 @@ export class SearchService {
    * limit, and reports any record that was requested but not retrieved.
    */
   async importAll(filters: SearchFilters, onProgress: (p: ImportProgress) => void): Promise<ImportResult> {
-    const querySent = this.query(filters)
-    const client = this.client()
-    const project = this.project()
-
-    const first = await client.search(querySent)
-    if (first.count === 0) throw new Error('This search returned no results, so there is nothing to import.')
-    if (first.count > PUBMED_RETRIEVAL_LIMIT) {
-      throw new Error(
-        `This search has ${first.count.toLocaleString()} results, but PubMed only allows retrieving the first ` +
-          `${PUBMED_RETRIEVAL_LIMIT.toLocaleString()}. Nothing was imported. Please narrow the search ` +
-          '(for example by date range or filters) and try again.'
-      )
-    }
-
-    const idSearch = await client.search(querySent, { retmax: PUBMED_RETRIEVAL_LIMIT })
-    const total = idSearch.count
-    const ids = [...new Set(idSearch.ids)]
-    const positions = new Map(ids.map((id, i) => [id, i]))
-
-    const searchId = project.insertSearch(
-      {
-        source: 'pubmed',
-        mode: 'structured',
-        filters,
-        querySent,
-        queryTranslation: idSearch.queryTranslation,
-        totalCount: total,
-        status: 'in_progress'
-      },
-      this.reviewer()
-    )
-
-    const retrieved = new Set<string>()
-    let newRecords = 0
-    let alreadyInProject = 0
-    onProgress({ done: 0, total })
-
-    try {
-      await client.fetchRecords(ids, (records) => {
-        const wanted = records.filter((r) => positions.has(r.pmid) && !retrieved.has(r.pmid))
-        wanted.forEach((r) => retrieved.add(r.pmid))
-        const res = project.addRecords(searchId, wanted, 'search_import', positions)
-        newRecords += res.newCount
-        alreadyInProject += res.duplicateCount
-        onProgress({ done: retrieved.size, total })
-      })
-    } catch (e) {
-      const message =
-        `Import stopped after ${retrieved.size} of ${total} records: ${(e as Error).message} ` +
-        'Records retrieved so far are kept and marked as coming from this incomplete search.'
-      const missing = ids.filter((id) => !retrieved.has(id))
-      project.finishSearch(searchId, 'failed', missing, message)
-      return { searchId, status: 'failed', total, retrieved: retrieved.size, newRecords, alreadyInProject, missingPmids: missing, message }
-    }
-
-    const missing = ids.filter((id) => !retrieved.has(id))
-    const shortfall = total - ids.length
-    let status: ImportResult['status'] = 'complete'
-    let message = `Imported all ${total} records: ${newRecords} new, ${alreadyInProject} already in the project.`
-    if (missing.length || shortfall > 0) {
-      status = 'incomplete'
-      message =
-        `PubMed reported ${total} results, but only ${retrieved.size} could be retrieved. ` +
-        (missing.length ? `${missing.length} PMIDs were listed but their records were not returned (listed below). ` : '') +
-        (shortfall > 0 ? `${shortfall} results were not listed by PubMed at all. ` : '') +
-        'Consider re-running the search later.'
-    }
-    project.finishSearch(searchId, status, missing, message)
-    return { searchId, status, total, retrieved: retrieved.size, newRecords, alreadyInProject, missingPmids: missing, message }
+    return importQuery(this.client(), this.project(), this.reviewer(), { querySent: this.query(filters), filters }, onProgress)
   }
+}
+
+/**
+ * Imports every result of an exact query string. Used for new searches and for
+ * automatic updates, which re-run the original query text unchanged.
+ */
+export async function importQuery(
+  client: PubMedClient,
+  project: ProjectStore,
+  reviewer: Reviewer,
+  q: { querySent: string; filters: SearchFilters; parentSearchId?: number },
+  onProgress: (p: ImportProgress) => void
+): Promise<ImportResult> {
+  const { querySent, filters } = q
+  const first = await client.search(querySent)
+  if (first.count === 0) throw new Error('This search returned no results, so there is nothing to import.')
+  if (first.count > PUBMED_RETRIEVAL_LIMIT) {
+    throw new Error(
+      `This search has ${first.count.toLocaleString()} results, but PubMed only allows retrieving the first ` +
+        `${PUBMED_RETRIEVAL_LIMIT.toLocaleString()}. Nothing was imported. Please narrow the search ` +
+        '(for example by date range or filters) and try again.'
+    )
+  }
+
+  const idSearch = await client.search(querySent, { retmax: PUBMED_RETRIEVAL_LIMIT })
+  const total = idSearch.count
+  const ids = [...new Set(idSearch.ids)]
+  const positions = new Map(ids.map((id, i) => [id, i]))
+
+  const searchId = project.insertSearch(
+    {
+      source: 'pubmed',
+      mode: 'structured',
+      filters,
+      querySent,
+      queryTranslation: idSearch.queryTranslation,
+      totalCount: total,
+      status: 'in_progress',
+      parentSearchId: q.parentSearchId ?? null
+    },
+    reviewer
+  )
+
+  const retrieved = new Set<string>()
+  let newRecords = 0
+  let alreadyInProject = 0
+  onProgress({ done: 0, total })
+
+  try {
+    await client.fetchRecords(ids, (records) => {
+      const wanted = records.filter((r) => positions.has(r.pmid) && !retrieved.has(r.pmid))
+      wanted.forEach((r) => retrieved.add(r.pmid))
+      const res = project.addRecords(searchId, wanted, 'search_import', positions)
+      newRecords += res.newCount
+      alreadyInProject += res.duplicateCount
+      onProgress({ done: retrieved.size, total })
+    })
+  } catch (e) {
+    const message =
+      `Import stopped after ${retrieved.size} of ${total} records: ${(e as Error).message} ` +
+      'Records retrieved so far are kept and marked as coming from this incomplete search.'
+    const missing = ids.filter((id) => !retrieved.has(id))
+    project.finishSearch(searchId, 'failed', missing, message)
+    return { searchId, status: 'failed', total, retrieved: retrieved.size, newRecords, alreadyInProject, missingPmids: missing, message }
+  }
+
+  const missing = ids.filter((id) => !retrieved.has(id))
+  const shortfall = total - ids.length
+  let status: ImportResult['status'] = 'complete'
+  let message = `Imported all ${total} records: ${newRecords} new, ${alreadyInProject} already in the project.`
+  if (missing.length || shortfall > 0) {
+    status = 'incomplete'
+    message =
+      `PubMed reported ${total} results, but only ${retrieved.size} could be retrieved. ` +
+      (missing.length ? `${missing.length} PMIDs were listed but their records were not returned (listed below). ` : '') +
+      (shortfall > 0 ? `${shortfall} results were not listed by PubMed at all. ` : '') +
+      'Consider re-running the search later.'
+  }
+  project.finishSearch(searchId, status, missing, message)
+  return { searchId, status, total, retrieved: retrieved.size, newRecords, alreadyInProject, missingPmids: missing, message }
 }

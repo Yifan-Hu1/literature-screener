@@ -249,7 +249,8 @@ describe('ProjectStore', () => {
 
     // Turn the project back into a v1 database with v1 tagging.
     const db = new DatabaseSync(join(path, 'project.db'))
-    db.exec(`DROP VIEW record_systems; DROP TABLE record_notes; DROP TABLE collection_records; DROP TABLE collections;
+    db.exec(`DROP TABLE search_schedules; DROP TABLE record_alerts; ALTER TABLE searches DROP COLUMN parent_search_id;
+      DELETE FROM meta WHERE key = 'notices_backfilled'; DROP VIEW record_systems; DROP TABLE record_notes; DROP TABLE collection_records; DROP TABLE collections;
       DELETE FROM exclusion_reasons; ALTER TABLE exclusion_reasons DROP COLUMN sort_order;
       ALTER TABLE system_tags DROP COLUMN present; DELETE FROM system_tags WHERE system = 'epidemiology';
       DELETE FROM meta WHERE key = 'tagging_version'; PRAGMA user_version = 1;`)
@@ -261,6 +262,9 @@ describe('ProjectStore', () => {
     expect(reopened.overview().recordCount).toBe(4)
     const tagged = reopened.listRecords(Q({ systems: ['epidemiology'] })).items.map((r) => r.pmid)
     expect(tagged).toContain('32329463') // a cross-sectional study
+    // Notices are read from the stored original XML: this record is a retracted publication.
+    const retracted = reopened.listRecords(Q({ text: '32329463' })).items[0].id
+    expect(reopened.getRecord(retracted).alerts.map((a) => a.kind)).toEqual(['retraction'])
     reopened.close()
   })
 })

@@ -51,6 +51,14 @@ describe('parsePubMedXml with real PubMed records', () => {
     expect(r.authors[0].lastName).toBeTruthy()
   })
 
+  it('reads retraction links from the record, and finds none on ordinary papers', () => {
+    const notices = byPmid.get('32329463')!.notices
+    expect(notices).toHaveLength(1)
+    expect(notices[0].kind).toBe('retraction')
+    expect(notices[0].noticePmid).toMatch(/^\d+$/)
+    expect(byPmid.get('33385560')!.notices).toEqual([])
+  })
+
   it('stores the original XML of each record', () => {
     for (const r of records) {
       expect(r.rawXml.startsWith('<PubmedArticle>')).toBe(true)

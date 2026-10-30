@@ -1,7 +1,7 @@
 // Parses PubMed efetch XML into PubMedRecord objects.
 // Only copies what the record says; never fills in or guesses missing fields.
 import { XMLParser } from 'fast-xml-parser'
-import type { Author, MeshHeading, PubMedRecord } from '../../../shared/types'
+import type { Author, MeshHeading, PublicationNotice, PubMedRecord } from '../../../shared/types'
 
 const ARRAY_TAGS = new Set([
   'PubmedArticle',
@@ -117,6 +117,25 @@ function parseMesh(list: Node): MeshHeading[] {
   }))
 }
 
+const NOTICE_REF_TYPES: Record<string, PublicationNotice['kind']> = {
+  RetractionIn: 'retraction',
+  ExpressionOfConcernIn: 'expression_of_concern'
+}
+
+/** Retraction / expression-of-concern links. A retracted paper also gets the "Retracted Publication" type. */
+export function parseNotices(articleXml: string): PublicationNotice[] {
+  const notices: PublicationNotice[] = []
+  const re = /<CommentsCorrections RefType="(RetractionIn|ExpressionOfConcernIn)"[^>]*>([\s\S]*?)<\/CommentsCorrections>/g
+  for (const m of articleXml.matchAll(re)) {
+    const pmid = m[2].match(/<PMID[^>]*>(\d+)<\/PMID>/)
+    notices.push({ kind: NOTICE_REF_TYPES[m[1]], noticePmid: pmid ? pmid[1] : null })
+  }
+  if (/<PublicationType[^>]*>Retracted Publication<\/PublicationType>/.test(articleXml) && !notices.some((n) => n.kind === 'retraction')) {
+    notices.push({ kind: 'retraction', noticePmid: null })
+  }
+  return notices
+}
+
 function parseArticle(chunk: string): PubMedRecord | null {
   const art: Node = parser.parse(chunk).PubmedArticle?.[0]
   const mc = art?.MedlineCitation
@@ -153,6 +172,7 @@ function parseArticle(chunk: string): PubMedRecord | null {
     mesh: parseMesh(mc.MeshHeadingList),
     keywords: (mc.KeywordList ?? []).flatMap((kl: Node) => (kl?.Keyword ?? []).map(rich)),
     languages: (a.Language ?? []).map(txt),
+    notices: parseNotices(chunk),
     rawXml: chunk
   }
 }

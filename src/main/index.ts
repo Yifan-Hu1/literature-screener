@@ -48,13 +48,15 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  // The app never needs camera, microphone, notifications, etc.
+  // Pages never need camera, microphone, web notifications, etc.
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
 
-  const { closeProject } = registerIpc(() => mainWindow)
+  const { closeProject, startUpdateChecks } = registerIpc(() => mainWindow)
   app.on('before-quit', closeProject)
 
   createWindow()
+  // Automated tests set this to keep runs predictable.
+  if (!process.env.LS_DISABLE_AUTO_UPDATES) startUpdateChecks()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })

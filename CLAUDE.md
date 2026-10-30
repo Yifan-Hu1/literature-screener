@@ -41,6 +41,10 @@ M1 (done): projects, PubMed search/browse/import, manual screening, persistence.
 M2 (done): concept builder + MeSH suggestions, primary-research filter, any/all system
 filters, epidemiology category, exclusion reasons, decision comments, notes, researcher
 tag corrections (`record_systems` view), criteria versions, collections, CSV/RIS/PRISMA export.
+Auto-updates (done): scheduled re-runs of import-all searches (exact original query text,
+logged as "update of #n"), checked at start-up and every 3 h while the app is open
+(`src/main/updates.ts`); re-checks include/unsure papers for retraction / expression-of-concern
+links (`record_alerts`). No background service, by design (university PCs).
 M3: optional AI pre-screening with a provider layer (Claude first) separate from tasks.
 M4: full text & supplements (PMC, Europe PMC, Unpaywall, manual import).
 Do not start a milestone until the owner has reviewed the previous one.
