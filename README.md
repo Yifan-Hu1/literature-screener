@@ -10,6 +10,21 @@ corrections, collections, CSV / RIS / PRISMA-summary export, and automatic searc
 (new papers and new retraction notices are checked whenever the app is open).
 AI screening and full-text retrieval are not built yet.
 
+## Just want to use the app?
+
+You don't need anything on this page. Ask the project coordinator for the installer
+and the **tester guide** (PDF), then:
+
+- **Mac:** open the `.dmg` file and drag **Literature Screener** into **Applications**
+  (`mac-arm64` for Macs with an Apple chip, `mac-x64` for Intel Macs).
+- **Windows:** double-click `windows-setup.exe`. No administrator rights needed.
+
+The tester guide explains the one-time security warning and what to try.
+
+---
+
+*Everything below is for developers working on the code.*
+
 ## Running the app (development)
 
 You need [Node.js](https://nodejs.org) 22 or newer. Open this folder in VS Code,
