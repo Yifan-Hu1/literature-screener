@@ -29,7 +29,7 @@ cp release/Literature-Screener-tester-guide.pdf "$WORK/site/"
 (
   cd "$WORK/site"
   git config user.email "$NOREPLY"
-  git config user.name yifanhu
+  git config user.name Prometheus69
   git add -A
   git commit -q -m "Site for $TAG" || echo "Site unchanged."
   git push -q

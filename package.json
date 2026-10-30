@@ -3,8 +3,13 @@
   "version": "0.1.0-alpha.3",
   "private": true,
   "description": "Desktop app for screening biomedical literature from PubMed",
-  "author": "Literature Screener contributors",
-  "license": "UNLICENSED",
+  "author": "Prometheus69",
+  "license": "MIT",
+  "homepage": "https://yifan-hu1.github.io/literature-screener-app/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Yifan-Hu1/literature-screener.git"
+  },
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",

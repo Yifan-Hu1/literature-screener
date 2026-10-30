@@ -88,3 +88,25 @@ src/shared/          types, search-query builder, organism presets
 build/icon.svg       the app icon (build/icon.png is rendered from it)
 tests/               automated tests (tests/e2e: end-to-end)
 ```
+
+## Privacy
+
+Literature Screener does not collect or send usage data. Projects, decisions and notes stay in
+the project folder on your computer. The only network service it contacts is NCBI's PubMed API
+(`eutils.ncbi.nlm.nih.gov`), to run the searches you start and the search updates you schedule;
+it sends your search queries and, if you enter them in Settings, your NCBI email and API key.
+Links to PubMed, DOI or PMC open in your web browser only when you click them.
+
+## Code signing policy
+
+Windows releases are intended to be signed with a free code signing certificate from the
+[SignPath Foundation](https://signpath.org), with signing performed by [SignPath.io](https://about.signpath.io).
+Until that is in place, test builds are unsigned.
+
+- Committers and approvers: [Prometheus69](https://github.com/Yifan-Hu1) (maintainer)
+- Only builds produced by this repository's GitHub Actions workflow from tagged versions are signed.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE). Copyright (c) 2026 Prometheus69.
+

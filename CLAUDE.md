@@ -1,9 +1,9 @@
 # Literature Screener: notes for Claude Code
 
 Desktop app (Electron + TypeScript + React + SQLite via built-in `node:sqlite`) for
-screening biomedical literature from PubMed. The owner is a biomedical researcher with
-limited programming experience: explain changes in plain language and give exact
-commands when they need to act.
+screening biomedical literature from PubMed. The maintainer is a biomedical researcher,
+not a software developer: explain changes in plain language and give exact commands
+when they need to act.
 
 ## Commands
 - `npm run dev`: run the app. `npm test`: unit tests. `npm run test:e2e`: drives the built
@@ -42,7 +42,7 @@ commands when they need to act.
 3. `scripts/publish-public.sh vX.Y.Z-alpha.N` puts the installers, tester guide and `site/` on the public
    repo Yifan-Hu1/literature-screener-app (GitHub Pages download page). Source code stays private.
    Installer file names carry no version, so the page's "latest" download links never change.
-4. Commits must use the GitHub noreply email (already set in this repo's git config).
+4. Commits must use the GitHub noreply email and author name Prometheus69 (set in this repo's git config).
 
 ## Roadmap
 M1 (done): projects, PubMed search/browse/import, manual screening, persistence.
