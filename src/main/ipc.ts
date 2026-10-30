@@ -1,10 +1,11 @@
 // Connects the UI's api calls (see shared/api.ts) to the main-process services.
-import { BrowserWindow, Notification, dialog, ipcMain, shell } from 'electron'
+import { BrowserWindow, Notification, clipboard, dialog, ipcMain, shell } from 'electron'
 import { IMPORT_PROGRESS_CHANNEL, INVOKE_METHODS, UPDATES_FINISHED_CHANNEL, type InvokeApi } from '../shared/api'
 import type { ProjectOverview, ProjectUpdateSummary } from '../shared/types'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { cloudSyncWarning } from './cloud'
+import { diagnostics, logError } from './errorlog'
 import { prismaSummary, recordsToCsv, recordsToRis } from './export'
 import { ProjectStore } from './project/store'
 import { SearchService } from './search'
@@ -78,6 +79,9 @@ export function registerIpc(getWindow: () => BrowserWindow | null): { closeProje
     },
     async openExternal(url) {
       openExternalSafe(url)
+    },
+    async copyDiagnostics() {
+      clipboard.writeText(diagnostics())
     },
 
     async createProject(input) {
@@ -255,6 +259,8 @@ export function registerIpc(getWindow: () => BrowserWindow | null): { closeProje
     updating = true
     try {
       announce(await updateProjects(settings.view().recentProjects, { client: getClient(), reviewer }))
+    } catch (e) {
+      logError('automatic updates', e)
     } finally {
       updating = false
     }
@@ -266,7 +272,14 @@ export function registerIpc(getWindow: () => BrowserWindow | null): { closeProje
 
   for (const method of INVOKE_METHODS) {
     const fn = handlers[method] as (...args: unknown[]) => Promise<unknown>
-    ipcMain.handle(method, (_event, ...args) => fn(...args))
+    ipcMain.handle(method, async (_event, ...args) => {
+      try {
+        return await fn(...args)
+      } catch (e) {
+        logError(method, e)
+        throw e
+      }
+    })
   }
 
   return { closeProject: () => switchProject(null), startUpdateChecks }

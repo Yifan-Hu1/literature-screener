@@ -41,6 +41,7 @@ export class Settings {
 
   view(): AppSettings {
     return {
+      appVersion: app.getVersion(),
       reviewerName: this.data.reviewerName,
       ncbiEmail: this.data.ncbiEmail,
       hasNcbiApiKey: !!this.data.ncbiApiKeyEncrypted,

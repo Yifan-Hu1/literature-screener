@@ -311,6 +311,7 @@ export interface RecordDetail {
 }
 
 export interface AppSettings {
+  appVersion: string
   reviewerName: string
   ncbiEmail: string
   hasNcbiApiKey: boolean

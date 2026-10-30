@@ -1,6 +1,10 @@
 import { app, BrowserWindow, session } from 'electron'
 import { join } from 'node:path'
+import { logError } from './errorlog'
 import { openExternalSafe, registerIpc } from './ipc'
+
+process.on('uncaughtException', (e) => logError('main process', e))
+process.on('unhandledRejection', (e) => logError('main process (promise)', e))
 
 // Lets automated tests run with a throwaway settings folder.
 if (process.env.LS_USER_DATA_DIR) app.setPath('userData', process.env.LS_USER_DATA_DIR)
@@ -41,6 +45,7 @@ function createWindow() {
   } else {
     void win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+  win.webContents.on('render-process-gone', (_e, details) => logError('window', `Window process ended: ${details.reason}`))
   win.on('closed', () => {
     mainWindow = null
   })

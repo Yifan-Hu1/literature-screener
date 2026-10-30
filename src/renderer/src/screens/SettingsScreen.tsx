@@ -69,6 +69,26 @@ export function SettingsScreen({ settings, onSaved }: { settings: AppSettings; o
         </div>
       </section>
 
+      <section className="card narrow">
+        <h3>About</h3>
+        <p>
+          Literature Screener <strong>{settings.appVersion}</strong>
+        </p>
+        <p className="hint">
+          Found a problem? Click below, then paste the details into your report. They include the app version, your
+          operating system and recent error messages; nothing is sent automatically.
+        </p>
+        <button
+          onClick={async () => {
+            await api.copyDiagnostics()
+            setError(null)
+            setMessage('Details copied. Paste them into your bug report.')
+          }}
+        >
+          Copy details for a bug report
+        </button>
+      </section>
+
       {message && <div className="alert alert-ok narrow">{message}</div>}
       <ErrorBox message={error} />
     </div>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Literature Screener alpha: tester guide</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm; }
+  :root { --ink: #1d2330; --muted: #5d6676; --accent: #a8352a; --line: #dde1e7; --soft: #f5f1ea; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.45; margin: 0; }
+  header { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 14px; }
+  header img { width: 54px; height: 54px; }
+  h1 { font-size: 19pt; margin: 0; }
+  .sub { color: var(--muted); margin: 2px 0 0; }
+  h2 { font-size: 12.5pt; color: var(--accent); margin: 18px 0 6px; break-after: avoid; }
+  h3 { font-size: 10.5pt; margin: 10px 0 4px; break-after: avoid; }
+  p { margin: 4px 0 8px; }
+  ol, ul { margin: 4px 0 8px; padding-left: 20px; }
+  li { margin: 2px 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; break-inside: avoid; }
+  .note { background: var(--soft); border-radius: 8px; padding: 8px 12px; margin: 8px 0; break-inside: avoid; }
+  .task { border-left: 3px solid var(--accent); padding: 2px 0 2px 10px; margin: 8px 0; break-inside: avoid; }
+  .task > b:first-child { display: block; }
+  kbd { font-family: inherit; font-size: 9pt; border: 1px solid #b8bec8; border-radius: 3px; padding: 0 4px; }
+  code { font-size: 9.5pt; background: #f0f2f5; padding: 0 3px; border-radius: 3px; }
+  .fill { display: inline-block; min-width: 230px; border-bottom: 1px solid var(--ink); }
+  footer { color: var(--muted); font-size: 8.5pt; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="../build/icon.svg" alt="">
+  <div>
+    <h1>Literature Screener: alpha tester guide</h1>
+    <p class="sub">Version 0.1.0-alpha.1 · Thank you for helping test this app before it is shared more widely.</p>
+  </div>
+</header>
+
+<p>Literature Screener is a desktop app for biomedical literature reviews. You search PubMed, keep the results in a
+project folder on your own computer, and screen titles and abstracts as <i>Include</i>, <i>Exclude</i> or <i>Unsure</i>.
+Every search and decision is recorded, so the review can be reproduced. This is an <b>alpha</b>: expect rough edges,
+and please tell us about every one you find.</p>
+
+<h2>1. Install</h2>
+<div class="two">
+  <div class="box">
+    <h3>Mac</h3>
+    <ol>
+      <li>Check your chip: Apple menu  → <b>About This Mac</b>. “Chip: Apple M…” → download the
+        <code>mac-arm64</code> file. “Processor: Intel” → the <code>mac-x64</code> file.</li>
+      <li>Open the <code>.dmg</code> and drag <b>Literature Screener</b> into <b>Applications</b>.</li>
+      <li>Open it. The first time, macOS says it cannot verify the app (test versions are not yet signed with Apple).
+        Click <b>Done</b> (or <b>OK</b>), then go to <b>System Settings → Privacy &amp; Security</b>, scroll down and click
+        <b>Open Anyway</b>. This is needed only once.</li>
+    </ol>
+  </div>
+  <div class="box">
+    <h3>Windows</h3>
+    <ol>
+      <li>Download the <code>windows-setup.exe</code> file and double-click it. It installs for your user account only
+        and <b>does not need administrator rights</b>; the app opens when done.</li>
+      <li>If “Windows protected your PC” appears, click <b>More info → Run anyway</b> (test versions are not yet
+        signed).</li>
+      <li>If your computer does not allow installing, try the <code>windows-portable.zip</code>: extract it and
+        double-click <b>Literature Screener.exe</b>.</li>
+      <li>Some university-managed PCs block unsigned programs entirely. If so, let us know; please don't work around
+        your IT rules.</li>
+    </ol>
+  </div>
+</div>
+
+<h2>2. First steps</h2>
+<ul>
+  <li>Enter your name when asked. It is saved with each screening decision.</li>
+  <li>Create a project in an <b>ordinary local folder</b>, not one synced by OneDrive, Dropbox, iCloud or Google
+    Drive (syncing while the app is open can damage the project). On university Windows PCs, “Documents” and
+    “Desktop” are often synced by OneDrive; the app warns you if it detects this. A folder such as
+    <code>C:\Users\&lt;you&gt;\LiteratureProjects</code> is a safe choice.</li>
+  <li>Optional: in <b>Settings</b>, add your email for NCBI, and a free NCBI API key if you will import large searches.</li>
+</ul>
+
+<h2>3. Things to try (about 45 minutes)</h2>
+<p>Use a topic from your own work if you can. Real questions find the most useful problems.</p>
+<div class="task"><b>Task 1: Set up a project.</b> Create a project with a research question and a few inclusion
+  and exclusion criteria.</div>
+<div class="task"><b>Task 2: Build a search.</b> In <b>Search PubMed</b>, put each idea in its own concept with
+  synonyms, use <b>Suggest MeSH terms</b>, choose organisms or systems (try “All of these”), and optionally
+  <b>Primary research only</b>. Compare the result count with the same query on pubmed.ncbi.nlm.nih.gov.</div>
+<div class="task"><b>Task 3: Collect papers.</b> Use <b>Import all</b> on one search (a few hundred results is
+  ideal). Run a different search and save two or three papers by hand with <b>Save to project</b>.</div>
+<div class="task"><b>Task 4: Screen.</b> Screen about 30 papers with the keyboard: <kbd>I</kbd> include,
+  <kbd>U</kbd> unsure, <kbd>E</kbd> exclude (then a number for the reason), <kbd>←</kbd> <kbd>→</kbd> to move.
+  Change one decision, add a note, and correct an organism label (✓ Confirm / ✗ Doesn't apply).</div>
+<div class="task"><b>Task 5: Organise and export.</b> In the <b>Library</b>, filter (e.g. by organism), create a
+  collection and add papers to it, then export <b>CSV</b> (open in Excel) and <b>RIS</b> (import into Zotero,
+  EndNote or Mendeley). On the Overview page, export the <b>PRISMA summary</b>.</div>
+<div class="task"><b>Task 6: Updates and persistence.</b> On the Overview page, set an imported search to
+  <b>Keep up to date</b> and press <b>Check now</b>. Quit the app, reopen it, and check that everything is still
+  there. Make a copy with <b>Back up project…</b>.</div>
+
+<h2>4. Reporting problems and ideas</h2>
+<p>Please report anything that breaks, confuses you, or gives a <b>scientifically wrong result</b> (for example a
+paper wrongly filtered out, a wrong organism label, or counts that don't add up). These matter most.</p>
+<ul>
+  <li>Say what you did, what you expected, and what happened. A screenshot helps.</li>
+  <li>In <b>Settings → About</b>, click <b>Copy details for a bug report</b> and paste the result into your message
+    (app version, operating system and recent error messages).</li>
+  <li>Send feedback to: <span class="fill">&nbsp;</span></li>
+</ul>
+
+<h2>5. Your data</h2>
+<ul>
+  <li>Projects, decisions and notes stay <b>on your computer</b>, in the project folder you chose.</li>
+  <li>Only your <b>search queries</b> (and, if you entered them, your NCBI email and API key) are sent to PubMed
+    (NCBI). There is no tracking and no AI in this version.</li>
+  <li>New test versions keep working with your existing projects. Still, use <b>Back up project…</b> before
+    installing a new version.</li>
+</ul>
+
+<h2>6. Known limitations of this alpha</h2>
+<ul>
+  <li>PubMed only. No AI screening, full-text retrieval or supplementary files yet.</li>
+  <li>One search can import at most 10,000 results (a PubMed limit); larger searches must be narrowed.</li>
+  <li>Automatic updates run only while the app is open.</li>
+  <li>No automatic app updates: we will send you new versions. Installing over the old version keeps your projects.</li>
+  <li>Security warnings on first launch, as described above, until the app is signed.</li>
+</ul>
+
+<footer>Literature Screener 0.1.0-alpha.1 · test version for invited testers only; please do not redistribute.</footer>
+</body>
+</html>

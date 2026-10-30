@@ -1,0 +1,70 @@
+# Tests the app on real Windows and Apple-chip Macs, and builds the installers.
+# Pushing a tag like v0.1.0-alpha.2 also creates a (private) GitHub release with the files.
+name: Test and build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest # Apple chip; also builds the Intel Mac version
+            package: npx electron-builder --mac --arm64 --x64 --publish never
+          - os: windows-latest
+            package: npx electron-builder --win --x64 --publish never
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: End-to-end test (opens the real app, uses live PubMed)
+        run: npm run test:e2e
+      - name: Build installers
+        run: ${{ matrix.package }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-${{ matrix.os }}
+          path: test-results/e2e/
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          path: |
+            release/*.dmg
+            release/*.exe
+            release/*.zip
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          merge-multiple: true
+          path: dist
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${GITHUB_REF_NAME}" dist/*
+          --repo "${GITHUB_REPOSITORY}"
+          --title "Literature Screener ${GITHUB_REF_NAME}"
+          --notes "Test build. See the tester guide for installation steps."
+          --prerelease

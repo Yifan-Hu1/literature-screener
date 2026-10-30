@@ -1,6 +1,6 @@
 {
   "name": "literature-screener",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "description": "Desktop app for screening biomedical literature from PubMed",
   "author": "Literature Screener contributors",
@@ -12,10 +12,12 @@
     "start": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "package:mac": "electron-vite build && electron-builder --mac --dir",
-    "package:win": "electron-vite build && electron-builder --win --dir",
+    "package:mac": "electron-vite build && electron-builder --mac --arm64 --x64 --publish never",
+    "package:win": "electron-vite build && electron-builder --win --x64 --publish never",
     "test:e2e": "electron-vite build && node tests/e2e/smoke.mjs",
-    "test:live": "LIVE_PUBMED=1 vitest run tests/pubmed-live.test.ts"
+    "test:live": "LIVE_PUBMED=1 vitest run tests/pubmed-live.test.ts",
+    "package:dir": "electron-vite build && electron-builder --dir --publish never",
+    "guide": "electron scripts/render-pdf.cjs docs/tester-guide.html \"release/Literature Screener tester guide.pdf\""
   },
   "build": {
     "appId": "org.literaturescreener.app",
@@ -33,16 +35,35 @@
       "target": [
         "dmg"
       ],
-      "category": "public.app-category.education"
+      "category": "public.app-category.education",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
     },
     "win": {
       "target": [
-        "nsis"
-      ]
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-windows-portable.${ext}"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "${productName}-${version}-windows-setup.${ext}"
     }
   },
   "dependencies": {

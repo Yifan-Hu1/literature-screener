@@ -27,6 +27,8 @@ export interface InvokeApi {
   updateSettings(update: SettingsUpdate): Promise<AppSettings>
   chooseFolder(title: string): Promise<string | null>
   openExternal(url: string): Promise<void>
+  /** Copies version, system and recent errors to the clipboard for a bug report. */
+  copyDiagnostics(): Promise<void>
 
   createProject(input: NewProjectInput): Promise<ProjectOverview>
   /** Without a path, asks the user to pick a folder. Returns null if cancelled. */
@@ -80,6 +82,7 @@ export const INVOKE_METHODS = [
   'updateSettings',
   'chooseFolder',
   'openExternal',
+  'copyDiagnostics',
   'createProject',
   'openProject',
   'closeProject',
