@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Literature Screener · Download</title>
+<meta name="description" content="Download the Literature Screener alpha for Mac or Windows.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #faf6ef; --surface: #ffffff; --ink: #1f2430; --muted: #646b78; --line: #e6dfd3;
+    --seal: #b23a2b; --seal-dark: #8f2b1f; --accent-text: #ffffff; --soft: #f3ece1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #17181c; --surface: #202228; --ink: #ecebe8; --muted: #a3a7b0; --line: #33363e;
+      --seal: #d0573f; --seal-dark: #b8442e; --soft: #262930; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 20px 64px; }
+  header { display: flex; gap: 18px; align-items: center; }
+  header img { width: 84px; height: 84px; flex-shrink: 0; }
+  h1 { font-size: 30px; margin: 0; letter-spacing: -0.01em; }
+  .tag { color: var(--muted); margin: 4px 0 0; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--seal); border: 1px solid var(--seal); border-radius: 999px; padding: 1px 9px; margin-top: 8px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; margin-top: 28px; }
+  .primary { display: inline-flex; align-items: center; gap: 10px; background: var(--seal); color: var(--accent-text);
+    text-decoration: none; font-weight: 650; font-size: 18px; padding: 14px 24px; border-radius: 10px; }
+  .primary:hover { background: var(--seal-dark); }
+  .primary svg { width: 20px; height: 20px; }
+  .choices { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .secondary { color: var(--ink); text-decoration: none; font-weight: 600; padding: 12px 18px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--surface); }
+  .secondary:hover { border-color: var(--seal); color: var(--seal); }
+  .meta { color: var(--muted); font-size: 14px; margin-top: 12px; }
+  h2 { font-size: 18px; margin: 0 0 12px; }
+  ol { padding-left: 22px; margin: 0; }
+  li { margin: 6px 0; }
+  .os { display: none; }
+  .os.show { display: block; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tabs button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--soft); color: var(--ink);
+    padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+  .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .links { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+  .link { display: block; text-decoration: none; color: var(--ink); background: var(--soft); border-radius: 10px; padding: 14px 16px; }
+  .link:hover { outline: 2px solid var(--seal); }
+  .link strong { display: block; }
+  .link span { color: var(--muted); font-size: 14px; }
+  .note { font-size: 14px; color: var(--muted); }
+  footer { margin-top: 36px; font-size: 13px; color: var(--muted); }
+  a { color: var(--seal); }
+  @media (max-width: 520px) { header { flex-direction: column; align-items: flex-start; } h1 { font-size: 26px; } .primary { width: 100%; justify-content: center; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.svg" alt="">
+    <div>
+      <h1>Literature Screener</h1>
+      <p class="tag">Search PubMed, collect publications and screen them in a project on your own computer.</p>
+      <span class="badge">Alpha test · invited testers</span>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="dl">
+    <h2 id="dl">Download</h2>
+    <div class="choices" id="choices"></div>
+    <p class="meta" id="version">Version information loading…</p>
+  </section>
+
+  <section class="card" aria-labelledby="install">
+    <h2 id="install">Install</h2>
+    <div class="tabs" role="group" aria-label="Choose your system">
+      <button type="button" data-os="mac">Mac</button>
+      <button type="button" data-os="win">Windows</button>
+    </div>
+    <div class="os" data-os="mac">
+      <ol>
+        <li>Open the downloaded <b>.dmg</b> file and drag <b>Literature Screener</b> into <b>Applications</b>.</li>
+        <li>Open the app. The first time, macOS says it cannot verify it (test versions are not yet signed with Apple).
+          Click <b>Done</b>, open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.
+          You only need to do this once.</li>
+      </ol>
+      <p class="note">Not sure which Mac you have? Apple menu  → <b>About This Mac</b>. “Chip: Apple M…” = Apple chip;
+        “Processor: Intel” = Intel.</p>
+    </div>
+    <div class="os" data-os="win">
+      <ol>
+        <li>Double-click the downloaded <b>installer</b>. It installs for your account only and needs no administrator rights;
+          the app opens when it is done.</li>
+        <li>If “Windows protected your PC” appears, click <b>More info → Run anyway</b> (test versions are not yet signed).</li>
+      </ol>
+      <p class="note">Installing not allowed on your computer? Try the
+        <a href="https://github.com/Yifan-Hu1/literature-screener-app/releases/latest/download/Literature-Screener-windows-portable.zip">portable version</a>:
+        extract the zip and double-click <b>Literature Screener.exe</b>. If your university blocks it, please tell us rather
+        than working around your IT rules.</p>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="more">
+    <h2 id="more">Testing</h2>
+    <div class="links">
+      <a class="link" href="Literature-Screener-tester-guide.pdf"><strong>Tester guide (PDF)</strong><span>What to try, about 45 minutes</span></a>
+      <a class="link" href="feedback"><strong>Send feedback</strong><span>Bugs, confusing parts, ideas</span></a>
+      <a class="link" href="https://github.com/Yifan-Hu1/literature-screener-app/releases"><strong>All downloads</strong><span>Every version and file</span></a>
+    </div>
+  </section>
+
+  <footer>
+    Your projects stay on your computer; only search queries are sent to PubMed (NCBI). No tracking, no account needed.
+    Test version for invited testers; please do not redistribute.
+  </footer>
+</main>
+
+<script>
+  var BASE = 'https://github.com/Yifan-Hu1/literature-screener-app/releases/latest/download/';
+  var FILES = {
+    win: { label: 'Download for Windows', file: 'Literature-Screener-windows-setup.exe' },
+    macArm: { label: 'Download for Mac (Apple chip)', file: 'Literature-Screener-mac-arm64.dmg' },
+    macIntel: { label: 'Mac with Intel processor', file: 'Literature-Screener-mac-x64.dmg' }
+  };
+  var DOWNLOAD_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg>';
+
+  var ua = navigator.userAgent || '';
+  var os = /Windows/i.test(ua) ? 'win' : /Mac/i.test(ua) && !/iPhone|iPad/i.test(ua) ? 'mac' : 'other';
+
+  function button(key, primary) {
+    var f = FILES[key];
+    return '<a class="' + (primary ? 'primary' : 'secondary') + '" href="' + BASE + f.file + '">' +
+      (primary ? DOWNLOAD_ICON : '') + f.label + '</a>';
+  }
+  var order = os === 'win' ? ['win', 'macArm', 'macIntel'] : ['macArm', 'macIntel', 'win'];
+  if (os === 'other') {
+    document.getElementById('choices').innerHTML =
+      '<p class="note">Literature Screener runs on Mac and Windows computers. Open this page there to download.</p>' +
+      button('macArm', false) + button('macIntel', false) + button('win', false);
+  } else {
+    document.getElementById('choices').innerHTML = order.map(function (k, i) { return button(k, i === 0); }).join('');
+  }
+
+  function showOs(which) {
+    document.querySelectorAll('.os').forEach(function (el) { el.classList.toggle('show', el.dataset.os === which); });
+    document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.os === which)); });
+  }
+  document.querySelectorAll('.tabs button').forEach(function (b) { b.addEventListener('click', function () { showOs(b.dataset.os); }); });
+  showOs(os === 'win' ? 'win' : 'mac');
+
+  fetch('https://api.github.com/repos/Yifan-Hu1/literature-screener-app/releases/latest')
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function (rel) {
+      var date = new Date(rel.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('version').textContent = 'Latest version ' + rel.tag_name.replace(/^v/, '') + ', released ' + date + '.';
+    })
+    .catch(function () { document.getElementById('version').textContent = 'Always the latest version.'; });
+</script>
+</body>
+</html>

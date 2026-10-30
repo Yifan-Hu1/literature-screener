@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Literature Screener · Feedback</title>
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<style>
+  :root { --bg: #faf6ef; --ink: #1f2430; --muted: #646b78; --seal: #b23a2b; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #17181c; --ink: #ecebe8; --muted: #a3a7b0; --seal: #d0573f; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 64px 20px; text-align: center; }
+  img { width: 72px; height: 72px; }
+  a { color: var(--seal); font-weight: 600; }
+  p { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <img src="../icon.svg" alt="">
+  <h1>Feedback</h1>
+  <p id="msg">The feedback form is being set up. Please check back soon.</p>
+  <p><a href="../">← Back to the download page</a></p>
+</main>
+<script>
+  // Set this to the Google Form link. The app and the tester guide only know this page,
+  // so the form can be replaced without releasing a new app version.
+  var FORM_URL = '';
+  if (FORM_URL) {
+    document.getElementById('msg').innerHTML = 'Opening the feedback form… If nothing happens, <a href="' + FORM_URL + '">click here</a>.';
+    location.replace(FORM_URL);
+  }
+</script>
+</body>
+</html>

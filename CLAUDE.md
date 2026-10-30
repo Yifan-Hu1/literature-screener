@@ -36,6 +36,14 @@ commands when they need to act.
 - Single reviewer for now; decisions already store `reviewer_id` for future dual screening.
   "Current decision" = latest by any reviewer (revisit when adding multi-reviewer mode).
 
+## Releasing a test version
+1. Bump `version` in package.json, commit, push, then `git tag vX.Y.Z-alpha.N && git push origin vX.Y.Z-alpha.N`.
+2. Wait for the tag's GitHub Actions run (tests + e2e on Windows and Apple-chip Mac, installers).
+3. `scripts/publish-public.sh vX.Y.Z-alpha.N` puts the installers, tester guide and `site/` on the public
+   repo Yifan-Hu1/literature-screener-app (GitHub Pages download page). Source code stays private.
+   Installer file names carry no version, so the page's "latest" download links never change.
+4. Commits must use the GitHub noreply email (already set in this repo's git config).
+
 ## Roadmap
 M1 (done): projects, PubMed search/browse/import, manual screening, persistence.
 M2 (done): concept builder + MeSH suggestions, primary-research filter, any/all system

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { AppSettings } from '../../../shared/types'
 import { api, errorMessage } from '../api'
 import { ErrorBox } from '../components/common'
+import { DOWNLOAD_PAGE_URL, FEEDBACK_URL } from '../../../shared/links'
 
 export function SettingsScreen({ settings, onSaved }: { settings: AppSettings; onSaved: (s: AppSettings) => void }) {
   const [name, setName] = useState(settings.reviewerName)
@@ -75,18 +76,37 @@ export function SettingsScreen({ settings, onSaved }: { settings: AppSettings; o
           Literature Screener <strong>{settings.appVersion}</strong>
         </p>
         <p className="hint">
-          Found a problem? Click below, then paste the details into your report. They include the app version, your
-          operating system and recent error messages; nothing is sent automatically.
+          New versions are on the{' '}
+          <a
+            href={DOWNLOAD_PAGE_URL}
+            onClick={(e) => {
+              e.preventDefault()
+              void api.openExternal(DOWNLOAD_PAGE_URL)
+            }}
+          >
+            download page
+          </a>
+          .
         </p>
-        <button
-          onClick={async () => {
-            await api.copyDiagnostics()
-            setError(null)
-            setMessage('Details copied. Paste them into your bug report.')
-          }}
-        >
-          Copy details for a bug report
-        </button>
+        <p className="hint">
+          Found a problem or have an idea? Click “Copy details for a bug report”, then “Send feedback” and paste the
+          details into the form. The details include the app version, your operating system and recent error messages;
+          nothing is sent automatically.
+        </p>
+        <div className="row">
+          <button
+            onClick={async () => {
+              await api.copyDiagnostics()
+              setError(null)
+              setMessage('Details copied. Now click “Send feedback” and paste them into the form.')
+            }}
+          >
+            Copy details for a bug report
+          </button>
+          <button className="primary" onClick={() => api.openExternal(FEEDBACK_URL)}>
+            Send feedback
+          </button>
+        </div>
       </section>
 
       {message && <div className="alert alert-ok narrow">{message}</div>}

@@ -24,7 +24,6 @@
   .task > b:first-child { display: block; }
   kbd { font-family: inherit; font-size: 9pt; border: 1px solid #b8bec8; border-radius: 3px; padding: 0 4px; }
   code { font-size: 9.5pt; background: #f0f2f5; padding: 0 3px; border-radius: 3px; }
-  .fill { display: inline-block; min-width: 230px; border-bottom: 1px solid var(--ink); }
   footer { color: var(--muted); font-size: 8.5pt; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 6px; }
 </style>
 </head>
@@ -33,7 +32,7 @@
   <img src="../build/icon.svg" alt="">
   <div>
     <h1>Literature Screener: alpha tester guide</h1>
-    <p class="sub">Version 0.1.0-alpha.1 · Thank you for helping test this app before it is shared more widely.</p>
+    <p class="sub">Alpha test version · Thank you for helping test this app before it is shared more widely.</p>
   </div>
 </header>
 
@@ -43,12 +42,14 @@ Every search and decision is recorded, so the review can be reproduced. This is 
 and please tell us about every one you find.</p>
 
 <h2>1. Install</h2>
+<p>Everything is on one page: <b>yifan-hu1.github.io/literature-screener-app</b>. It suggests the right download
+for your computer.</p>
 <div class="two">
   <div class="box">
     <h3>Mac</h3>
     <ol>
-      <li>Check your chip: Apple menu  → <b>About This Mac</b>. “Chip: Apple M…” → download the
-        <code>mac-arm64</code> file. “Processor: Intel” → the <code>mac-x64</code> file.</li>
+      <li>On the download page, choose <b>Apple chip</b> or <b>Intel</b>. Not sure? Apple menu  →
+        <b>About This Mac</b>: “Chip: Apple M…” means Apple chip; “Processor: Intel” means Intel.</li>
       <li>Open the <code>.dmg</code> and drag <b>Literature Screener</b> into <b>Applications</b>.</li>
       <li>Open it. The first time, macOS says it cannot verify the app (test versions are not yet signed with Apple).
         Click <b>Done</b> (or <b>OK</b>), then go to <b>System Settings → Privacy &amp; Security</b>, scroll down and click
@@ -58,12 +59,12 @@ and please tell us about every one you find.</p>
   <div class="box">
     <h3>Windows</h3>
     <ol>
-      <li>Download the <code>windows-setup.exe</code> file and double-click it. It installs for your user account only
+      <li>Download the Windows installer and double-click it. It installs for your user account only
         and <b>does not need administrator rights</b>; the app opens when done.</li>
       <li>If “Windows protected your PC” appears, click <b>More info → Run anyway</b> (test versions are not yet
         signed).</li>
-      <li>If your computer does not allow installing, try the <code>windows-portable.zip</code>: extract it and
-        double-click <b>Literature Screener.exe</b>.</li>
+      <li>If your computer does not allow installing, use the <b>portable version</b> (link on the download page):
+        extract the zip and double-click <b>Literature Screener.exe</b>.</li>
       <li>Some university-managed PCs block unsigned programs entirely. If so, let us know; please don't work around
         your IT rules.</li>
     </ol>
@@ -104,9 +105,10 @@ and please tell us about every one you find.</p>
 paper wrongly filtered out, a wrong organism label, or counts that don't add up). These matter most.</p>
 <ul>
   <li>Say what you did, what you expected, and what happened. A screenshot helps.</li>
-  <li>In <b>Settings → About</b>, click <b>Copy details for a bug report</b> and paste the result into your message
+  <li>In <b>Settings → About</b>, click <b>Copy details for a bug report</b> and paste the result into the form
     (app version, operating system and recent error messages).</li>
-  <li>Send feedback to: <span class="fill">&nbsp;</span></li>
+  <li>Send it with the feedback form: in the app, <b>Settings → About → Send feedback</b>, or go to
+    <b>yifan-hu1.github.io/literature-screener-app/feedback</b>.</li>
 </ul>
 
 <h2>5. Your data</h2>
@@ -123,10 +125,11 @@ paper wrongly filtered out, a wrong organism label, or counts that don't add up)
   <li>PubMed only. No AI screening, full-text retrieval or supplementary files yet.</li>
   <li>One search can import at most 10,000 results (a PubMed limit); larger searches must be narrowed.</li>
   <li>Automatic updates run only while the app is open.</li>
-  <li>No automatic app updates: we will send you new versions. Installing over the old version keeps your projects.</li>
+  <li>No automatic app updates: new versions appear on the download page (we will let you know). Installing over the
+    old version keeps your projects.</li>
   <li>Security warnings on first launch, as described above, until the app is signed.</li>
 </ul>
 
-<footer>Literature Screener 0.1.0-alpha.1 · test version for invited testers only; please do not redistribute.</footer>
+<footer>Literature Screener alpha · test version for invited testers only; please do not redistribute.</footer>
 </body>
 </html>
