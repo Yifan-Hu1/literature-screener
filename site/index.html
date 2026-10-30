@@ -50,6 +50,8 @@
   .link strong { display: block; }
   .link span { color: var(--muted); font-size: 14px; }
   .note { font-size: 14px; color: var(--muted); }
+  .features { margin: 0; padding-left: 20px; }
+  .features li { margin: 6px 0; }
   footer { margin-top: 36px; font-size: 13px; color: var(--muted); }
   a { color: var(--seal); }
   @media (max-width: 520px) { header { flex-direction: column; align-items: flex-start; } h1 { font-size: 26px; } .primary { width: 100%; justify-content: center; } }
@@ -100,6 +102,17 @@
     </div>
   </section>
 
+  <section class="card" aria-labelledby="what">
+    <h2 id="what">What it does</h2>
+    <ul class="features">
+      <li>Build PubMed searches from concepts and synonyms, with MeSH suggestions and organism, study-type and date filters.</li>
+      <li>Import all results of a search (logged exactly, for reproducibility) or hand-pick papers.</li>
+      <li>Screen titles and abstracts as Include / Exclude / Unsure with keyboard shortcuts, exclusion reasons and notes; every decision is kept in a history.</li>
+      <li>Organise papers in collections; export to CSV, RIS (Zotero, EndNote) and a PRISMA-style summary.</li>
+      <li>Keep searches up to date automatically and get warned about retractions of papers you kept.</li>
+    </ul>
+  </section>
+
   <section class="card" aria-labelledby="more">
     <h2 id="more">Testing</h2>
     <div class="links">
@@ -107,6 +120,20 @@
       <a class="link" href="feedback"><strong>Send feedback</strong><span>Bugs, confusing parts, ideas</span></a>
       <a class="link" href="https://github.com/Yifan-Hu1/literature-screener-app/releases"><strong>All downloads</strong><span>Every version and file</span></a>
     </div>
+  </section>
+
+  <section class="card" aria-labelledby="policy">
+    <h2 id="policy">Code signing policy, privacy and uninstalling</h2>
+    <p class="note"><b>Code signing policy.</b> Free code signing provided by <a href="https://about.signpath.io">SignPath.io</a>,
+      certificate by <a href="https://signpath.org">SignPath Foundation</a> (applied for; current test builds are unsigned).
+      Authors, reviewers and approvers: <a href="https://github.com/Yifan-Hu1">Prometheus69</a>.
+      Only installers built from the <a href="https://github.com/Yifan-Hu1/literature-screener">public source code</a> by its
+      automated build are signed, and each signing is approved manually.</p>
+    <p class="note"><b>Privacy.</b> This program will not transfer any information to other networked systems unless
+      specifically requested by the user. It contacts only NCBI's PubMed service, to run the searches and search
+      updates you set up. No usage data is collected.</p>
+    <p class="note"><b>Uninstalling.</b> Windows: Settings → Apps → Installed apps → Literature Screener → Uninstall.
+      Mac: drag the app from Applications to the Trash. Your project folders are kept.</p>
   </section>
 
   <footer>
